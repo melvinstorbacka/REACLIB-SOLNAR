@@ -8,6 +8,8 @@ Last edited Oct 26, 2023.
 
 """
 
+from input_parser import element_Z_vs_name, element_name_vs_Z
+
 
 # for the time being, I will assume one reactant (ask Chong, do we want to include 
 # reactions with more than one nucleus? what is the long-term goal?)
@@ -15,27 +17,77 @@ Last edited Oct 26, 2023.
 
 
 class Nucleus:
-    def __init__(self, Z, N, mass):
+    def __init__(self, name, Z, N, mass):
+        self.name = name
         self.Z = Z
         self.N = N
-        self.mass = mass
+        self.mass = mass    
+        # the mass must be converted to MeV at this stage
+        # TODO: add mass conversion and unit option in the input parser
+        
+
+
+class NuclearNetwork:
+    def __init__(self, list_of_nuclear_data, reaction_type_list):
+        self.nuclei = self.__read_nuclear_list(list_of_nuclear_data)
+        self.reactions, self.products = self.__list_of_reactions(reaction_type_list)
+        self.Qs = self.__Q_list() # check if needed - write data_fetch.py
+
+    
+    def __read_nuclear_list(self, list_of_nuclei_data):
+        """Reads raw input from input_parser into nuclei list in NuclearNetwork"""
+        nuclei_dict = {}
+        # for every nucleus in the list, we find its chemical symbol, z, and n, and 
+        # add a Nucleus object to nuclei_dict
+        for nuc in list_of_nuclei_data:
+            symb = "".join(list(filter(lambda x: not x.isdigit(), nuc[0])))
+            z = element_Z_vs_name[symb]
+            a = int(nuc[0].replace(symb, ""))
+            n = a - z
+            mass = nuc[1]
+            nuclei_dict.update({(n, z) : Nucleus(symb, z, n, mass)})
+        return nuclei_dict
+    
+    
+    def __list_of_reactions(self, reaction_type_list):
+        """
+        Given the reaction types, returns a list of reaction objects.
+        Currenty implemented reaction types: "(n, g)"
+        To be implemented in the future: alpha, beta... """
+        reaction_list = []
+        reaction_products = []
+
+        # allows for multiple reaction types to be called at once
+        for reaction_type in reaction_type_list:
+            if reaction_type == "(n, g)":
+                for (n, z), nuc in self.nuclei.items():
+                    # checks if the necessary data exists: if so, add reaction and products to lists
+                    if (n + 1, z) in self.nuclei:
+                        products = self.nuclei[(n+1, z)]
+                        reaction_list.append(Reaction(nuc, "(n, g)", products))
+                        reaction_products.append(products)
+                        
+            elif reaction_type == "alpha":
+                pass
+        return reaction_list, reaction_products
+    
+    def __Q_list(self): # have to determine if this is even needed
+        return [reaction.Q for reaction in self.reactions]
+
+
+
 
 
 class Reaction:     
-    def __init__(self, reactant_nucleus, reaction_type):    # possible reaction types: "alpha", "(n, g)", "beta" ... (and so on)
+    def __init__(self, reactant_nucleus, reaction_type, reaction_products):
         self.reactant_nucleus = reactant_nucleus
-        self.reaction_type = reaction_type
+        self.type = reaction_type
+        self.products = reaction_products
+        self.Q = self.__Q()
 
-    def products(self):
-        """Returns the reaction products of the reaction"""
-        
-        products = []
-
-        if self.reaction_type == "(n, g)":
-            products.append(Nucleus(self.reactant_nucleus.Z, self.reactant_nucleus.N))
-        pass
-
-    def Q(self):
+    def __Q(self):
         """Returns the Q-value of the reaction"""
-        pass
+        rmass = self.reactant_nucleus.mass
+        pmass = sum([product.mass for product in self.products])
+        return rmass - pmass
     
