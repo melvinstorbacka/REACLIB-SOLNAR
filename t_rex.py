@@ -37,7 +37,7 @@ class NuclearNetwork:
     def __read_nuclear_list(self, list_of_nuclei_data):
         """Reads raw input from input_parser into nuclei list in NuclearNetwork"""
         nuclei_dict = {}
-        # for every nucleus in the list, we find its chemical symbol, z, and n, and 
+        # for every nucleus in the list, we find its chemical symbol, z, and n, and
         # add a Nucleus object to nuclei_dict
         for nuc in list_of_nuclei_data:
             symb = "".join(list(filter(lambda x: not x.isdigit(), nuc[0])))
@@ -87,6 +87,6 @@ class Reaction:
     def __q(self):
         """Returns the Q-value of the reaction"""
         rmass = self.reactant_nucleus.mass
-        pmass = sum([product.mass for product in self.products])
+        pmass = sum(product.mass for product in self.products)
         return rmass - pmass
-
+    

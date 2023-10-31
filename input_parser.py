@@ -3,10 +3,10 @@
 
 """"""
 
-element_name_vs_Z = {1: "h", 
+element_name_vs_Z = {1: "h",
      2: "he",
      3: "li",
-     4: "be", 
+     4: "be",
      5: "b" ,
      6: "c" ,
      7: "n" ,
@@ -118,9 +118,25 @@ element_name_vs_Z = {1: "h",
      113: "uut" ,
      114: "uuq" ,
      115: "uup" ,
-     116: "uuh", 
-     117: "uus", 
+     116: "uuh",
+     117: "uus",
      118: "uuo"}
 
 element_Z_vs_name = {name: Z for Z, name in element_name_vs_Z.items()}
 
+"""
+what do I want for input options?
+
+choose nuclei - either list in file or separate path to nuclear list
+
+nuclear masses - must be specified together with nuclear list (add DZ option in the program? no?)
+
+mass unit (MeV, u, mass excess as well, binding energy...)
+
+reaction type(s)
+
+nbins (default maximum)
+
+
+
+"""
