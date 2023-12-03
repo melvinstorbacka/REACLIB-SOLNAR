@@ -1,0 +1,26 @@
+# 2023-12-03
+# Default input file for TALYS for rate gerenation of T-REx database
+
+
+#
+# mass data for current run
+#
+
+projectile n
+ejectiles g
+element Z
+massnucleus Z, A, mass
+massnucleus Z, A+1, mass
+
+
+energy 1.
+
+#
+# Parameters
+#
+ldmodel 1
+
+astro y
+astroT 0.01, 0.02, 1
+
+
