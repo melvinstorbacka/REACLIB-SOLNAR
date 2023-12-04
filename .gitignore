@@ -1,8 +1,11 @@
+# python and associated
 *.pyc
-
 __pycache__/
 
-
+# talys and associated
 talys*
-
 astrorate*
+
+# SONAR file structure
+data/
+calculations/

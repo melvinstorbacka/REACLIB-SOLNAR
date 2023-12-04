@@ -1,3 +1,4 @@
-# T-REx
+# SLONAR
 
-**T**ALYS **R**EACLIB **Ex**tension (will probably change)
+**S**tockholm Library **O**f **N**uclear **A**strophysical **R**ate Variations
+
