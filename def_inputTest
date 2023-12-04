@@ -8,10 +8,10 @@
 
 projectile n
 ejectiles g
-element Z
-mass A
-massnucleus Z, A, mass
-massnucleus Z, A+1, mass
+element 50
+mass 120
+massnucleus 50, 120, 120.0
+massnucleus 50, 121, 121.0
 
 
 energy 1.
@@ -22,6 +22,7 @@ energy 1.
 ldmodel 1
 
 astro y
-astroT 0.01, 0.02, 1
+#astroT 0.01
+#astroT 0.02
 
 
