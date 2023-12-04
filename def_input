@@ -10,8 +10,8 @@ projectile n
 ejectiles g
 element Z
 mass A
-massnucleus Z, A, mass
-massnucleus Z, A+1, mass
+massexcess Z, A, ME
+massexcess Z, A+1, ME
 
 
 energy 1.
