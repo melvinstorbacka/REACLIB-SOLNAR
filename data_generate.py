@@ -37,6 +37,16 @@ NUM_QS = 20
 # binding energy per nucleon fractional step
 BE_STEP = 0.02
 
+# proton and neutron mass in MeV, reference: https://www.nist.gov/pml/fundamental-physical-constants
+PROTON_MASS_IN_MEV = 938.27208816
+NEUTRON_MASS_IN_MEV = 939.56542052
+ELECTRON_MASS_IN_MEV = 0.51099895000
+
+
+# MeV to a.m.u. conversion, reference: https://www.nist.gov/pml/fundamental-physical-constants
+MEVTOU = 931.49410242
+
+
 
 def read_xml_baseline_masses(xml_path):
     """Reads the baseline masses from XML webnucleo file and returns array 
@@ -146,6 +156,27 @@ def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel):
         os.kill(os.getpid(), signal.SIGTERM)
     return
 
+def mass_excess_to_bindning_energy(n, z, mass_excess):
+    """Converts the input mass excess to binding energy.
+    n               : number of neutrons
+    z               : number of protons
+    mass_excess     : mass excess in MeV"""
+
+    nuclear_mass = mass_excess + (n + z)*MEVTOU
+    binding_energy = - nuclear_mass + n*NEUTRON_MASS_IN_MEV + z*(PROTON_MASS_IN_MEV + ELECTRON_MASS_IN_MEV)
+    return binding_energy
+
+def binding_energy_to_mass_excess(n, z, binding_energy):
+    """Converts the input binding energy to mass excess.
+    n               : number of neutrons
+    z               : number of protons
+    binding_energy  : binding energy in MeV"""
+
+    nuclear_mass = -binding_energy + n*NEUTRON_MASS_IN_MEV + z*(PROTON_MASS_IN_MEV + ELECTRON_MASS_IN_MEV)
+    mass_excess = nuclear_mass - (n + z)*MEVTOU
+    print(nuclear_mass/MEVTOU)
+    return mass_excess
+
 def move_to_long_term_storage(n, z, storage_path):
     """Moves calculation results from data/{z}-{n}/ to storage_path/SONAR_data/{z}-{n}.
     n               : number of neutrons
@@ -196,4 +227,6 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, be_step):
 if __name__ == "__main__":
     init_calculation(1)
 
-    prepare_input(1, 1, 2, [2.01, 10.01], 4)
+    print(mass_excess_to_bindning_energy(62, 50, -88.6579))
+    print(binding_energy_to_mass_excess(62, 50, mass_excess_to_bindning_energy(62, 50, -88.6579)))
+
