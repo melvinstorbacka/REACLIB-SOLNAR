@@ -123,15 +123,28 @@ def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel):
     num_ldmodel     : the number for ldmodel option to be used in TALYS"""
     try:
         with open("def_input", "r", encoding="utf8") as f:
-            with open(f"calculations/calculation{calculation_idx}/input", "w", encoding="utf8") as g:
+            with open(f"calculations/calculation{calculation_idx}/input", "w",
+                      encoding="utf8") as g:
+                mecount = 0
                 while True:
                     line = f.readline()
                     if not line:
                         break
-                    g.write(line)
+                    line = line.split()
+                    if "element" in line:
+                        line[-1] = str(z)
+                    elif "mass" in line:
+                        line[-1] = str(z + n)
+                    elif "massexcess" in line:
+                        line[-3], line[-2] = str(z) + ",", str(n + z) + ","
+                        line[-1] = str(mass_excesses[mecount])
+                        mecount += 1
+                    elif "ldmodel" in line:
+                        line[-1] = str(num_ldmodel)
+                    line.append("\n")
+                    g.write(" ".join(line))
     except FileNotFoundError:
-        logging.error("Could not find 'def_input' in directory." +
-                      "Does it exist? Terminating...", str(calculation_idx))
+        logging.error("File 'def_input' not found. Does it exist? Terminating...")
         os.kill(os.getpid(), signal.SIGTERM)
     return
 
@@ -173,7 +186,7 @@ def execute(nuclei_lst, max_num_cores, talys_path, xml_path, num_qs, be_step):
 
     # parallel computation 
     num_cores = multiprocessing.cpu_count()
-    if num_cores > max_num_cores:
+    if num_cores > max_num_cores: # TODO: remove?
         num_cores = max_num_cores
     print(f"Number of available cores: {num_cores}")
     pool = multiprocessing.Pool(num_cores)
@@ -192,6 +205,6 @@ if __name__ == "__main__":
 
     init_calculation(1)
 
-    prepare_input(1, 1, 2, 3, 4)
+    prepare_input(1, 1, 2, [2.01, 10.01], 4)
 
 

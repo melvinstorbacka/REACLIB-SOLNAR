@@ -1,9 +1,9 @@
 # 2023-12-03
-# Default input file for TALYS for rate gerenation of T-REx database
+# Default input file for TALYS for rate gerenation of SONAR database
 
 
 #
-# mass data for current run
+# nuclear data for current run
 #
 
 projectile n
@@ -22,6 +22,3 @@ energy 1.
 ldmodel 1
 
 astro y
-astroT 0.01, 0.02, 1
-
-
