@@ -11,7 +11,7 @@ Last edited Dec 4, 2023.
 
 """
 
-import xml
+from xml.etree import ElementTree as ET
 import os
 import shutil
 import multiprocessing
@@ -44,13 +44,24 @@ def read_xml_baseline_masses(xml_path):
     """Reads the baseline masses from XML webnucleo file and returns array 
     with entries on form (N, Z, mass_excess).
     xml_path : path to webnucleo library file"""
-    return
+    tree = ET.ElementTree(file=xml_path)
+    root = tree.getroot()
+    out_array = np.empty(len(root), dtype=tuple)
+    for i, child in enumerate(root):
+        out_array[i] = (int(child[1].text), int(child[0].text), float(child[3].text))
+    return out_array
 
 def baseline_mass_excess(nzme_array, ns, zs):
     """Returns the baseline mass excess from the stored array of N, Z and mass excess.
     nzme_array      : array formatted as (N, Z, mass_excess)
     ns              : list of neutron numbers to search for, with each z
     zs              : list of protons to search for, with each n"""
+    be_out_array = np.empty(len(ns))
+    for nzme in nzme_array:
+        for i, (n, z) in enumerate(zip(ns, zs)):
+            if nzme[0] == n and nzme[1] == z:
+                be_out_array[i] = nzme[2]
+    return be_out_array
 
 def init_calculations(num_calculation_folders):
     """Checks whether a sufficient amount of folders have been created. If not, creates them
@@ -60,12 +71,12 @@ def init_calculations(num_calculation_folders):
 
 def perform_calculation(n, z, baseline_me, be_step, num_qs, talys_path):
     """Runs calculations for rates for a certain nucleus in calculations/calculation{PID}, then removes it.
-        n               : number of neutrons
-        z               : number of protons
-        baseline_me     : tuple of baseline mass excesses for the calculation, (me(N), me(N+1))
-        be_step         : fractional step in binding energy per nucleon between each calculation
-        num_qs          : number of Q-values to be used (odd number)
-        talys_path      : path to TALYS binary to be used in the calculations"""
+    n               : number of neutrons
+    z               : number of protons
+    baseline_me     : tuple of baseline mass excesses for the calculation, (me(N), me(N+1))
+    be_step         : fractional step in binding energy per nucleon between each calculation
+    num_qs          : number of Q-values to be used (odd number)
+    talys_path      : path to TALYS binary to be used in the calculations"""
     calculation_idx = os.getpid()
     return
 
@@ -87,9 +98,9 @@ def prepare_input(calculation_idx, n, z, mass_excesses):
 
 def move_to_long_term_storage(n, z, storage_path):
     """Moves calculation results from data/{z}-{n}/ to storage_path/SONAR_data/{z}-{n}.
-        n               : number of neutrons
-        z               : number of protons
-        storage_path    : path to long-term storage directory"""
+    n               : number of neutrons
+    z               : number of protons
+    storage_path    : path to long-term storage directory"""
     return
 
 
@@ -133,3 +144,10 @@ def execute(nuclei_lst, max_num_cores, talys_path, xml_path, num_qs, be_step):
 
     pool.close()
     pool.join()
+
+
+if __name__ == "__main__":
+    a = (read_xml_baseline_masses(XML_PATH))
+
+    print(baseline_mass_excess(a, [101, 102], [50, 50]))
+
