@@ -13,8 +13,10 @@ Last edited Dec 4, 2023.
 
 from xml.etree import ElementTree as ET
 import os
+import signal
 import shutil
 import multiprocessing
+import logging
 
 
 import numpy as np
@@ -63,10 +65,23 @@ def baseline_mass_excess(nzme_array, ns, zs):
                 be_out_array[i] = nzme[2]
     return be_out_array
 
-def init_calculations(num_calculation_folders):
-    """Checks whether a sufficient amount of folders have been created. If not, creates them
-    and copies the TALYS binary into the folder.
-    num_calculation_folders : the number of calculations that should run in parallel"""
+def init_calculation(calculation_idx):
+    """Creates a folder for a particular calculation and copies the 
+    TALYS binary into the folder.
+    calculation_idx   : the PID of the current process"""
+    if "calculations" not in os.listdir():
+        os.mkdir("calculations")
+    try:
+        os.mkdir(f"calculations/calculation{calculation_idx}")
+    except FileExistsError:
+        logging.warning("Directory calculations/calculation%s already exists. Will be overwritten.",
+                        str(calculation_idx))
+    return
+
+def clean_calculation(calculation_idx):
+    """Removes the folder for the particular calculation
+    calculation_idx   : the PID of the current process"""
+    os.rmdir(f"calculations/calculation{calculation_idx}")
     return
 
 def perform_calculation(n, z, baseline_me, be_step, num_qs, talys_path):
@@ -86,14 +101,38 @@ def save_calculation_results(calculation_idx, n, z):
     calculation_idx : calculation number id (PID)
     n               : number of neutrons
     z               : number of protons"""
+    if not "data" in os.listdir():
+        os.mkdir("data")
+    if not f"{z}-{n}" in os.listdir("data"):
+        os.mkdir(f"data/{z}-{n}")
+    try:
+        shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
+                    "data/{z}-{n}/astrorate.g")
+    except FileNotFoundError:
+        logging.error("Could not copy 'astrorate.g' from calculations/calculation%s/" +
+                      "Does it exist? Terminating...", str(calculation_idx))
+        os.kill(os.getpid(), signal.SIGTERM)
     return
 
-def prepare_input(calculation_idx, n, z, mass_excesses):
+def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel):
     """Prepares the input file for the current calulation run.
     calculation_idx : calculation number id (PID)
     n               : number of neutrons
     z               : number of protons
-    mass_excesses   : tuple of current mass excesses for the calculation, (me(N), me(N+1))"""
+    mass_excesses   : tuple of current mass excesses for the calculation, (me(N), me(N+1))
+    num_ldmodel     : the number for ldmodel option to be used in TALYS"""
+    try:
+        with open("def_input", "r", encoding="utf8") as f:
+            with open(f"calculations/calculation{calculation_idx}/input", "w", encoding="utf8") as g:
+                while True:
+                    line = f.readline()
+                    if not line:
+                        break
+                    g.write(line)
+    except FileNotFoundError:
+        logging.error("Could not find 'def_input' in directory." +
+                      "Does it exist? Terminating...", str(calculation_idx))
+        os.kill(os.getpid(), signal.SIGTERM)
     return
 
 def move_to_long_term_storage(n, z, storage_path):
@@ -150,4 +189,9 @@ if __name__ == "__main__":
     a = (read_xml_baseline_masses(XML_PATH))
 
     print(baseline_mass_excess(a, [101, 102], [50, 50]))
+
+    init_calculation(1)
+
+    prepare_input(1, 1, 2, 3, 4)
+
 
