@@ -23,10 +23,6 @@ import numpy as np
 
 
 
-
-# maximal number of cores to be used for parallell computations
-MAX_NUM_CORES = 10
-
 # path to TALYS binary to be used in the calculations (will be copied into calculation folders) NB:
 # Intended to use TALYS with 108 temperature steps -- see documentation.
 # TODO: add some sort of documentation
@@ -93,6 +89,7 @@ def perform_calculation(n, z, baseline_me, be_step, num_qs, talys_path):
     num_qs          : number of Q-values to be used (odd number)
     talys_path      : path to TALYS binary to be used in the calculations"""
     calculation_idx = os.getpid()
+    # TODO: add calculation of mass excess to be used in each run
     return
 
 def save_calculation_results(calculation_idx, n, z):
@@ -108,6 +105,7 @@ def save_calculation_results(calculation_idx, n, z):
     try:
         shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
                     "data/{z}-{n}/astrorate.g")
+        # TODO: add saving of Q-value from talys.out to this file
     except FileNotFoundError:
         logging.error("Could not copy 'astrorate.g' from calculations/calculation%s/" +
                       "Does it exist? Terminating...", str(calculation_idx))
@@ -156,10 +154,9 @@ def move_to_long_term_storage(n, z, storage_path):
     return
 
 
-def execute(nuclei_lst, max_num_cores, talys_path, xml_path, num_qs, be_step):
+def execute(nuclei_lst, talys_path, xml_path, num_qs, be_step):
     """Generates reaction rate data for passed nuclei and parameters.
     nuclei_lst      : full list of all nuclei to be changed, with entries formatted as (N, Z)
-    max_num_cores   : the maximal number of cores to be allocated to the calculations
     talys_path      : path to TALYS binary to be used in the calculations
     xml_path        : path to xml file for the baseline masses to be used
     be_step         : fractional step in binding energy per nucleon between each calculation
@@ -184,10 +181,8 @@ def execute(nuclei_lst, max_num_cores, talys_path, xml_path, num_qs, be_step):
         arguments.append((n, z, me, be_step, num_qs, talys_path))
 
 
-    # parallel computation 
+    # parallel computation
     num_cores = multiprocessing.cpu_count()
-    if num_cores > max_num_cores: # TODO: remove?
-        num_cores = max_num_cores
     print(f"Number of available cores: {num_cores}")
     pool = multiprocessing.Pool(num_cores)
 
@@ -199,12 +194,6 @@ def execute(nuclei_lst, max_num_cores, talys_path, xml_path, num_qs, be_step):
 
 
 if __name__ == "__main__":
-    a = (read_xml_baseline_masses(XML_PATH))
-
-    print(baseline_mass_excess(a, [101, 102], [50, 50]))
-
     init_calculation(1)
 
     prepare_input(1, 1, 2, [2.01, 10.01], 4)
-
-
