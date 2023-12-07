@@ -103,7 +103,6 @@ def perform_calculation(arguments):
     talys_path      : path to TALYS binary to be used in the calculations"""
     n, z, baseline_mes, be_step, num_qs, talys_path = arguments
     calculation_idx = os.getpid()
-    print(calculation_idx)
     baseline_be = mass_excess_to_bindning_energy(n, z, baseline_mes[0])
 
     init_calculation(calculation_idx)
