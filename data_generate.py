@@ -31,11 +31,11 @@ TALYS_PATH = './talys'
 # path to xml file for the baseline masses to be used
 XML_PATH = "input_data/webnucleo-nuc2021.xml"
 
-# number of Q-value steps
-NUM_QS = 20
+# number of Q-value steps (must be odd)
+NUM_QS = 21
 
 # binding energy per nucleon fractional step
-BE_STEP = 0.02
+BE_STEP = 0.01
 
 # proton and neutron mass in MeV, reference: https://www.nist.gov/pml/fundamental-physical-constants
 PROTON_MASS_IN_MEV = 938.27208816
@@ -54,9 +54,9 @@ def read_xml_baseline_masses(xml_path):
     xml_path : path to webnucleo library file"""
     tree = ET.ElementTree(file=xml_path)
     root = tree.getroot()
-    out_array = np.empty(len(root), dtype=tuple)
+    out_array = np.empty((len(root), 3), dtype=tuple)
     for i, child in enumerate(root):
-        out_array[i] = (int(child[1].text), int(child[0].text), float(child[3].text))
+        out_array[i, 0], out_array[i, 1], out_array[i, 2] = int(child[1].text) - int(child[0].text), int(child[0].text), float(child[3].text) # N och A here?
     return out_array
 
 def baseline_mass_excess(nzme_array, ns, zs):
@@ -64,11 +64,14 @@ def baseline_mass_excess(nzme_array, ns, zs):
     nzme_array      : array formatted as (N, Z, mass_excess)
     ns              : list of neutron numbers to search for, with each z
     zs              : list of protons to search for, with each n"""
-    be_out_array = np.empty(len(ns))
-    for nzme in nzme_array:
-        for i, (n, z) in enumerate(zip(ns, zs)):
-            if nzme[0] == n and nzme[1] == z:
-                be_out_array[i] = nzme[2]
+    be_out_array = np.empty(len(ns), dtype=np.ndarray)
+    for i, (n, z) in enumerate(zip(ns, zs)):
+        for idx, nzme in enumerate(np.vsplit(nzme_array, 8230)):
+            if nzme[0][0] == n and nzme[0][1] == z:
+                if nzme_array[idx + 1][0] == n+1 and nzme_array[idx+1][1] == z:
+                    be_out_array[i] = np.array((nzme[0][2], nzme_array[idx+1][2]))
+                else:
+                    be_out_array[i] = None  # if we do not have data for the product, do not calculate
     return be_out_array
 
 def init_calculation(calculation_idx):
@@ -90,16 +93,33 @@ def clean_calculation(calculation_idx):
     os.rmdir(f"calculations/calculation{calculation_idx}")
     return
 
-def perform_calculation(n, z, baseline_me, be_step, num_qs, talys_path):
+def perform_calculation(arguments):
     """Runs calculations for rates for a certain nucleus in calculations/calculation{PID}, then removes it.
     n               : number of neutrons
     z               : number of protons
-    baseline_me     : tuple of baseline mass excesses for the calculation, (me(N), me(N+1))
+    baseline_me     : array of baseline mass excesses for the calculation, (me(N), me(N+1))
     be_step         : fractional step in binding energy per nucleon between each calculation
     num_qs          : number of Q-values to be used (odd number)
     talys_path      : path to TALYS binary to be used in the calculations"""
+    n, z, baseline_mes, be_step, num_qs, talys_path = arguments
     calculation_idx = os.getpid()
-    # TODO: add calculation of mass excess to be used in each run
+    print(calculation_idx)
+    baseline_be = mass_excess_to_bindning_energy(n, z, baseline_mes[0])
+
+    init_calculation(calculation_idx)
+
+    # iterate over each calculation
+    for idx in range(num_qs):
+        for ld_idx in range(1, 6): # TODO: is it number 1 - 5?
+            # confirmed to give a +/- (num_qs - 1)/2 even spread
+            current_be = baseline_be * (1 + (be_step)*(idx - (num_qs - 1)/2))
+            current_me = (binding_energy_to_mass_excess(n, z, current_be), baseline_mes[1])
+            prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
+            os.system("./talys < input > talys.out")
+            save_calculation_results(calculation_idx, n, z)
+
+    clean_calculation(calculation_idx)
+
     return
 
 def save_calculation_results(calculation_idx, n, z):
@@ -120,14 +140,29 @@ def save_calculation_results(calculation_idx, n, z):
         logging.error("Could not copy 'astrorate.g' from calculations/calculation%s/" +
                       "Does it exist? Terminating...", str(calculation_idx))
         os.kill(os.getpid(), signal.SIGTERM)
+    try:
+        with open("calculations/calculation{calculation_idx}/talys.out") as f:
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+                if "Q(n, g)" in line:
+                    QVal = line
+                    break
+        with open("data/{z}-{n}/astrorate.g", "a") as f:
+            f.write(QVal)
+    except FileNotFoundError:
+        logging.error("Could not copy 'talys.out' from calculations/calculation%s/" +
+                      "Does it exist? Terminating...", str(calculation_idx))
+        os.kill(os.getpid(), signal.SIGTERM)
     return
 
-def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel):
+def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel, talys_path):
     """Prepares the input file for the current calulation run.
     calculation_idx : calculation number id (PID)
     n               : number of neutrons
     z               : number of protons
-    mass_excesses   : tuple of current mass excesses for the calculation, (me(N), me(N+1))
+    mass_excesses   : array of current mass excesses for the calculation, (me(N), me(N+1))
     num_ldmodel     : the number for ldmodel option to be used in TALYS"""
     try:
         with open("def_input", "r", encoding="utf8") as f:
@@ -151,6 +186,11 @@ def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel):
                         line[-1] = str(num_ldmodel)
                     line.append("\n")
                     g.write(" ".join(line))
+        try:
+            shutil.copy(talys_path, f"calculations/calculation{calculation_idx}/talys")
+        except FileNotFoundError:
+            logging.error("Could not find TALYS in 'TALYS_PATH'. Terminating...")
+            os.kill(os.getpid(), signal.SIGTERM)
     except FileNotFoundError:
         logging.error("File 'def_input' not found. Does it exist? Terminating...")
         os.kill(os.getpid(), signal.SIGTERM)
@@ -163,7 +203,8 @@ def mass_excess_to_bindning_energy(n, z, mass_excess):
     mass_excess     : mass excess in MeV"""
 
     nuclear_mass = mass_excess + (n + z)*MEVTOU
-    binding_energy = - nuclear_mass + n*NEUTRON_MASS_IN_MEV + z*(PROTON_MASS_IN_MEV + ELECTRON_MASS_IN_MEV)
+    binding_energy = - nuclear_mass + n*NEUTRON_MASS_IN_MEV + z*(PROTON_MASS_IN_MEV + 
+                                                                 ELECTRON_MASS_IN_MEV)
     return binding_energy
 
 def binding_energy_to_mass_excess(n, z, binding_energy):
@@ -172,9 +213,9 @@ def binding_energy_to_mass_excess(n, z, binding_energy):
     z               : number of protons
     binding_energy  : binding energy in MeV"""
 
-    nuclear_mass = -binding_energy + n*NEUTRON_MASS_IN_MEV + z*(PROTON_MASS_IN_MEV + ELECTRON_MASS_IN_MEV)
+    nuclear_mass = -binding_energy + n*NEUTRON_MASS_IN_MEV + z*(PROTON_MASS_IN_MEV + 
+                                                                ELECTRON_MASS_IN_MEV)
     mass_excess = nuclear_mass - (n + z)*MEVTOU
-    print(nuclear_mass/MEVTOU)
     return mass_excess
 
 def move_to_long_term_storage(n, z, storage_path):
@@ -193,23 +234,27 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, be_step):
     be_step         : fractional step in binding energy per nucleon between each calculation
     num_qs          : number of Q-values to be used (odd number)"""
 
+    if num_qs % 2 == 0:
+        logging.error("Number of Q-steps is not odd. Terminating...")
+        os.kill(os.getpid(), signal.SIGTERM)
+
     # preparation for calculations
 
     ns = []
     zs = []
 
+    total_baseline_me_array = read_xml_baseline_masses(xml_path)
+
     for nuc in nuclei_lst:
         zs.append(nuc[1])
         ns.append(nuc[0])
-
-    total_baseline_me_array = read_xml_baseline_masses(xml_path)
-
-    baseline_me = baseline_mass_excess(total_baseline_me_array, zs, ns)
-
+        
+    baseline_me = baseline_mass_excess(total_baseline_me_array, ns, zs)
 
     arguments = []
     for n, z, me in zip(ns, zs, baseline_me):
-        arguments.append((n, z, me, be_step, num_qs, talys_path))
+        if me is not None: # checks that we have data for the product
+            arguments.append((n, z, me, be_step, num_qs, talys_path))
 
 
     # parallel computation
@@ -223,10 +268,5 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, be_step):
     pool.close()
     pool.join()
 
-
 if __name__ == "__main__":
-    init_calculation(1)
-
-    print(mass_excess_to_bindning_energy(62, 50, -88.6579))
-    print(binding_energy_to_mass_excess(62, 50, mass_excess_to_bindning_energy(62, 50, -88.6579)))
-
+    print("File should be imported, then run 'execute()' with the proper arguments.")
