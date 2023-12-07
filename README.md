@@ -1,6 +1,6 @@
-# REACLIB-SONAR
+# REACLIB-SOLNAR
 
-**REACLIB** **S**tockholm Library **O**f **N**uclear **A**strophysical **R**ate Variations
+**REACLIB** **S**tockholm **O**pen **L**ibrary for **N**uclear **A**strophysical **R**eaction Rate Variations
 
 
 **Data generation**
