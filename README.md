@@ -1,6 +1,6 @@
-# SONAR
+# REACLIB-SONAR
 
-**S**tockholm Library **O**f **N**uclear **A**strophysical **R**ate Variations
+**REACLIB** **S**tockholm Library **O**f **N**uclear **A**strophysical **R**ate Variations
 
 
 **Data generation**
