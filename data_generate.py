@@ -35,7 +35,7 @@ XML_PATH = "input_data/webnucleo-nuc2021.xml"
 NUM_QS = 21
 
 # binding energy per nucleon fractional step
-BE_STEP = 0.01
+BE_STEP = 0.0005
 
 # proton and neutron mass in MeV, reference: https://www.nist.gov/pml/fundamental-physical-constants
 PROTON_MASS_IN_MEV = 938.27208816
@@ -109,46 +109,49 @@ def perform_calculation(arguments):
 
     # iterate over each calculation
     for idx in range(num_qs):
-        for ld_idx in range(1, 6): # TODO: is it number 1 - 5?
+        for ld_idx in range(1, 7): 
             # confirmed to give a +/- (num_qs - 1)/2 even spread
             current_be = baseline_be * (1 + (be_step)*(idx - (num_qs - 1)/2))
             current_me = (binding_energy_to_mass_excess(n, z, current_be), baseline_mes[1])
             prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
+            def_path = os.path.abspath(os.getcwd())
+            os.chdir(f"calculations/calculation{calculation_idx}")
             os.system("./talys < input > talys.out")
-            save_calculation_results(calculation_idx, n, z)
+            os.chdir(def_path)
+            save_calculation_results(calculation_idx, n, z, str(idx) + str(ld_idx))
 
-    clean_calculation(calculation_idx)
+    #clean_calculation(calculation_idx)
 
     return
 
-def save_calculation_results(calculation_idx, n, z):
+def save_calculation_results(calculation_idx, n, z, name):
     """Moves calculation results from calculations/calculation{i}/ to
     data/{z}-{n}/, and automatically assigns the Q-value from the output file.
     calculation_idx : calculation number id (PID)
     n               : number of neutrons
     z               : number of protons"""
+    print(os.getcwd())
     if not "data" in os.listdir():
         os.mkdir("data")
     if not f"{z}-{n}" in os.listdir("data"):
         os.mkdir(f"data/{z}-{n}")
     try:
         shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
-                    "data/{z}-{n}/astrorate.g")
-        # TODO: add saving of Q-value from talys.out to this file
+                   f"data/{z}-{n}/astrorate_{name}.g")
     except FileNotFoundError:
         logging.error("Could not copy 'astrorate.g' from calculations/calculation%s/" +
                       "Does it exist? Terminating...", str(calculation_idx))
         os.kill(os.getpid(), signal.SIGTERM)
     try:
-        with open("calculations/calculation{calculation_idx}/talys.out") as f:
+        with open(f"calculations/calculation{calculation_idx}/talys.out") as f:
             while True:
                 line = f.readline()
                 if not line:
                     break
-                if "Q(n, g)" in line:
+                if "Q(n,g)" in line:
                     QVal = line
                     break
-        with open("data/{z}-{n}/astrorate.g", "a") as f:
+        with open(f"data/{z}-{n}/astrorate_{name}.g", "a") as f:
             f.write(QVal)
     except FileNotFoundError:
         logging.error("Could not copy 'talys.out' from calculations/calculation%s/" +
@@ -178,7 +181,7 @@ def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel, talys_path)
                     elif "mass" in line:
                         line[-1] = str(z + n)
                     elif "massexcess" in line:
-                        line[-3], line[-2] = str(z) + ",", str(n + z) + ","
+                        line[-3], line[-2] = str(z) + ",", str(n + z + mecount) + ","
                         line[-1] = str(mass_excesses[mecount])
                         mecount += 1
                     elif "ldmodel" in line:
@@ -258,9 +261,8 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, be_step):
 
     # parallel computation
     num_cores = multiprocessing.cpu_count()
-    print(f"Number of available cores: {num_cores}")
+    print(f"Running with {num_cores} cores.")
     pool = multiprocessing.Pool(num_cores)
-
 
     pool.map_async(perform_calculation, arguments)
 
