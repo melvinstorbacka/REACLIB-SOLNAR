@@ -1,6 +1,6 @@
 from data_generate import execute
 
-TALYS_PATH = './talys'
+TALYS_PATH = '~/REACLIB-SOLNAR/talys'
 
 # path to xml file for the baseline masses to be used
 XML_PATH = "input_data/webnucleo-nuc2021.xml"

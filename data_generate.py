@@ -24,9 +24,10 @@ import numpy as np
 
 
 # path to TALYS binary to be used in the calculations (will be copied into calculation folders) NB:
-# Intended to use TALYS with 108 temperature steps -- see documentation.
+# Intended to use TALYS with 108 temperature./talys steps -- see documentation.
 # TODO: add some sort of documentation
-TALYS_PATH = './talys'
+# needs to be full path
+TALYS_PATH = '~/REACLIB-SOLNAR/talys'
 
 # path to xml file for the baseline masses to be used
 XML_PATH = "input_data/webnucleo-nuc2021.xml"
@@ -35,7 +36,7 @@ XML_PATH = "input_data/webnucleo-nuc2021.xml"
 NUM_QS = 21
 
 # binding energy per nucleon fractional step
-BE_STEP = 0.0005
+Q_STEP = 0.1
 
 # proton and neutron mass in MeV, reference: https://www.nist.gov/pml/fundamental-physical-constants
 PROTON_MASS_IN_MEV = 938.27208816
@@ -98,10 +99,10 @@ def perform_calculation(arguments):
     n               : number of neutrons
     z               : number of protons
     baseline_me     : array of baseline mass excesses for the calculation, (me(N), me(N+1))
-    be_step         : fractional step in binding energy per nucleon between each calculation
+    q_step          : step in Q-value between each calculation
     num_qs          : number of Q-values to be used (odd number)
     talys_path      : path to TALYS binary to be used in the calculations"""
-    n, z, baseline_mes, be_step, num_qs, talys_path = arguments
+    n, z, baseline_mes, q_step, num_qs, talys_path = arguments
     calculation_idx = os.getpid()
     baseline_be = mass_excess_to_bindning_energy(n, z, baseline_mes[0])
 
@@ -111,12 +112,14 @@ def perform_calculation(arguments):
     for idx in range(num_qs):
         for ld_idx in range(1, 7): 
             # confirmed to give a +/- (num_qs - 1)/2 even spread
-            current_be = baseline_be * (1 + (be_step)*(idx - (num_qs - 1)/2))
+            current_be = baseline_be + (q_step)*(idx - (num_qs - 1)/2)
+            # test what the Q-value "should" be
+            print(f"Predicted Q: {calculation_idx}, {current_be - binding_energy_to_mass_excess(baseline_mes[1])}")
             current_me = (binding_energy_to_mass_excess(n, z, current_be), baseline_mes[1])
             prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
             def_path = os.path.abspath(os.getcwd())
             os.chdir(f"calculations/calculation{calculation_idx}")
-            os.system("./talys < input > talys.out")
+            os.system(f"{talys_path} < input > talys.out")
             os.chdir(def_path)
             save_calculation_results(calculation_idx, n, z, str(idx) + str(ld_idx))
 
@@ -130,7 +133,6 @@ def save_calculation_results(calculation_idx, n, z, name):
     calculation_idx : calculation number id (PID)
     n               : number of neutrons
     z               : number of protons"""
-    print(os.getcwd())
     if not "data" in os.listdir():
         os.mkdir("data")
     if not f"{z}-{n}" in os.listdir("data"):
@@ -188,11 +190,6 @@ def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel, talys_path)
                         line[-1] = str(num_ldmodel)
                     line.append("\n")
                     g.write(" ".join(line))
-        try:
-            shutil.copy(talys_path, f"calculations/calculation{calculation_idx}/talys")
-        except FileNotFoundError:
-            logging.error("Could not find TALYS in 'TALYS_PATH'. Terminating...")
-            os.kill(os.getpid(), signal.SIGTERM)
     except FileNotFoundError:
         logging.error("File 'def_input' not found. Does it exist? Terminating...")
         os.kill(os.getpid(), signal.SIGTERM)
@@ -228,12 +225,12 @@ def move_to_long_term_storage(n, z, storage_path):
     return
 
 
-def execute(nuclei_lst, talys_path, xml_path, num_qs, be_step):
+def execute(nuclei_lst, talys_path, xml_path, num_qs, q_step):
     """Generates reaction rate data for passed nuclei and parameters.
     nuclei_lst      : full list of all nuclei to be changed, with entries formatted as (N, Z)
     talys_path      : path to TALYS binary to be used in the calculations
     xml_path        : path to xml file for the baseline masses to be used
-    be_step         : fractional step in binding energy per nucleon between each calculation
+    q_step          : step in Q-value between each calculation
     num_qs          : number of Q-values to be used (odd number)"""
 
     if num_qs % 2 == 0:
@@ -256,7 +253,7 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, be_step):
     arguments = []
     for n, z, me in zip(ns, zs, baseline_me):
         if me is not None: # checks that we have data for the product
-            arguments.append((n, z, me, be_step, num_qs, talys_path))
+            arguments.append((n, z, me, q_step, num_qs, talys_path))
 
 
     # parallel computation
