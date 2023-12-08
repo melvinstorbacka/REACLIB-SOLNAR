@@ -9,3 +9,6 @@ astrorate*
 # SONAR file structure
 data/
 calculations/
+
+# nohup files
+nohup*

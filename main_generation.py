@@ -6,7 +6,7 @@ TALYS_PATH = '~/REACLIB-SOLNAR/talys'
 XML_PATH = "input_data/webnucleo-nuc2021.xml"
 
 # number of Q-value steps (must be odd)
-NUM_QS = 21
+NUM_QS = 1
 
 # binding energy per nucleon fractional step
 BE_STEP = 0.0005

@@ -1,371 +1,56 @@
 Running with 12 cores.
+WARNING:root:Directory calculations/calculation34963 already exists. Will be overwritten.
+Running with 12 cores.
+Running with 12 cores.
+Traceback (most recent call last):
+  File "main_generation.py", line 16, in <module>
+    execute(nuclei_lst, TALYS_PATH, XML_PATH, NUM_QS, BE_STEP)
+  File "/home/melles/REACLIB-SOLNAR/data_generate.py", line 264, in execute
+    perform_calculation(arguments[0])
+  File "/home/melles/REACLIB-SOLNAR/data_generate.py", line 117, in perform_calculation
+    print(f"Predicted Q: {calculation_idx}, {current_be - binding_energy_to_mass_excess(baseline_mes[1])}")
+TypeError: binding_energy_to_mass_excess() missing 2 required positional arguments: 'z' and 'binding_energy'
+Running with 12 cores.
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880318099977785
 At line 50 of file incidentecis.f (unit = 9)
 Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
 
 Error termination. Backtrace:
-#0  0x7fb6fcd8fd4a
-#1  0x7fb6fcd90859
-#2  0x7fb6fcd9153f
-#3  0x7fb6fcfd09c6
-#4  0x7fb6fcfd0cbc
-#5  0x5580481fd7b5
-#6  0x55804820063f
-#7  0x55804838d480
-#8  0x55804838d2c8
-#9  0x55804838d315
-#10  0x7fb6fca370b2
-#11  0x55804802e49d
+#0  0x7fcd00d55d4a
+#1  0x7fcd00d56859
+#2  0x7fcd00d5753f
+#3  0x7fcd00f969c6
+#4  0x7fcd00f96cbc
+#5  0x560441b197b5
+#6  0x560441b1c63f
+#7  0x560441ca9480
+#8  0x560441ca92c8
+#9  0x560441ca9315
+#10  0x7fcd009fd0b2
+#11  0x56044194a49d
 #12  0xffffffffffffffff
-ERROR:root:Could not copy 'astrorate.g' from calculations/calculation19574/Does it exist? Terminating...
-At line 55 of file directecis.f (unit = 9)
-Fortran runtime error: Cannot open file 'ecisdisc.inp': No such file or directory
-
-Error termination. Backtrace:
-#0  0x7fe55c1d8d4a
-#1  0x7fe55c1d9859
-#2  0x7fe55c1da53f
-#3  0x7fe55c4199c6
-#4  0x7fe55c419cbc
-#5  0x55cc91bdaf36
-#6  0x55cc91bdbf3e
-#7  0x55cc91ec04e2
-#8  0x55cc91ec02c8
-#9  0x55cc91ec0315
-#10  0x7fe55be800b2
-#11  0x55cc91b6149d
-#12  0xffffffffffffffff
-ERROR:root:Could not copy 'astrorate.g' from calculations/calculation19575/Does it exist? Terminating...
-Running with 12 cores.
-At line 55 of file directecis.f (unit = 9)
-Fortran runtime error: Cannot open file 'ecisdisc.inp': No such file or directory
-
-Error termination. Backtrace:
-#0  0x7fdc8cc7dd4a
-#1  0x7fdc8cc7e859
-#2  0x7fdc8cc7f53f
-#3  0x7fdc8cebe9c6
-#4  0x7fdc8cebecbc
-#5  0x559e44882f36
-#6  0x559e44883f3e
-#7  0x559e44b684e2
-#8  0x559e44b682c8
-#9  0x559e44b68315
-#10  0x7fdc8c9250b2
-#11  0x559e4480949d
-#12  0xffffffffffffffff
-ERROR:root:Could not copy 'astrorate.g' from calculations/calculation19754/Does it exist? Terminating...
-At line 50 of file incidentecis.f (unit = 9)
-Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
-
-Error termination. Backtrace:
-#0  0x7fc913a95d4a
-#1  0x7fc913a96859
-#2  0x7fc913a9753f
-#3  0x7fc913cd69c6
-#4  0x7fc913cd6cbc
-#5  0x55d1264077b5
-#6  0x55d12640a63f
-#7  0x55d126597480
-#8  0x55d1265972c8
-#9  0x55d126597315
-#10  0x7fc91373d0b2
-#11  0x55d12623849d
-#12  0xffffffffffffffff
-ERROR:root:Could not copy 'astrorate.g' from calculations/calculation19753/Does it exist? Terminating...
-Running with 12 cores.
-Running with 12 cores.
-(62.6502606409922, -41.35)
-(55.00465910999628, -50.31)
-/home/melles/SONAR
-(55.00465910999628, -50.31)
-/home/melles/SONAR
-(62.6502606409922, -41.35)
-At line 50 of file incidentecis.f (unit = 9)
-Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
-
-Error termination. Backtrace:
-#0  0x7efe6a8b6d4a
-#1  0x7efe6a8b7859
-#2  0x7efe6a8b853f
-#3  0x7efe6aaf79c6
-#4  0x7efe6aaf7cbc
-#5  0x555758c937b5
-#6  0x555758c9663f
-#7  0x555758e23480
-#8  0x555758e232c8
-#9  0x555758e23315
-#10  0x7efe6a55e0b2
-#11  0x555758ac449d
-#12  0xffffffffffffffff
-ERROR:root:Could not copy 'astrorate.g' from calculations/calculation20319/Does it exist? Terminating...
-At line 50 of file incidentecis.f (unit = 9)
-Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
-
-Error termination. Backtrace:
-#0  0x7f3d5bb7bd4a
-#1  0x7f3d5bb7c859
-#2  0x7f3d5bb7d53f
-#3  0x7f3d5bdbc9c6
-#4  0x7f3d5bdbccbc
-#5  0x55a7611217b5
-#6  0x55a76112463f
-#7  0x55a7612b1480
-#8  0x55a7612b12c8
-#9  0x55a7612b1315
-#10  0x7f3d5b8230b2
-#11  0x55a760f5249d
-#12  0xffffffffffffffff
-ERROR:root:Could not copy 'astrorate.g' from calculations/calculation20318/Does it exist? Terminating...
-Running with 12 cores.
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
-/home/melles/SONAR
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation35103/Does it exist? Terminating...

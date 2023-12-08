@@ -114,14 +114,14 @@ def perform_calculation(arguments):
             # confirmed to give a +/- (num_qs - 1)/2 even spread
             current_be = baseline_be + (q_step)*(idx - (num_qs - 1)/2)
             # test what the Q-value "should" be
-            print(f"Predicted Q: {calculation_idx}, {current_be - binding_energy_to_mass_excess(baseline_mes[1])}")
+            Q_value = - current_be + binding_energy_to_mass_excess(n+1, z, baseline_mes[1])
             current_me = (binding_energy_to_mass_excess(n, z, current_be), baseline_mes[1])
             prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
             def_path = os.path.abspath(os.getcwd())
             os.chdir(f"calculations/calculation{calculation_idx}")
             os.system(f"{talys_path} < input > talys.out")
             os.chdir(def_path)
-            save_calculation_results(calculation_idx, n, z, str(idx) + str(ld_idx))
+            save_calculation_results(calculation_idx, n, z, f"{idx:03d}" + "-" + f"{ld_idx:03d}" + "-" + str(round(Q_value, 4)))
 
     #clean_calculation(calculation_idx)
 
@@ -139,7 +139,7 @@ def save_calculation_results(calculation_idx, n, z, name):
         os.mkdir(f"data/{z}-{n}")
     try:
         shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
-                   f"data/{z}-{n}/astrorate_{name}.g")
+                   f"data/{z}-{n}/astrorate-{name}.g")
     except FileNotFoundError:
         logging.error("Could not copy 'astrorate.g' from calculations/calculation%s/" +
                       "Does it exist? Terminating...", str(calculation_idx))
@@ -153,7 +153,7 @@ def save_calculation_results(calculation_idx, n, z, name):
                 if "Q(n,g)" in line:
                     QVal = line
                     break
-        with open(f"data/{z}-{n}/astrorate_{name}.g", "a") as f:
+        with open(f"data/{z}-{n}/astrorate-{name}.g", "a") as f:
             f.write(QVal)
     except FileNotFoundError:
         logging.error("Could not copy 'talys.out' from calculations/calculation%s/" +
