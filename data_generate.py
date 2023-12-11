@@ -256,8 +256,6 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, q_step):
                 if me is not None: # checks that we have data for the product
                     arguments.append((n, z, me, q_step, num_qs, talys_path, idx, ld_idx))
 
-    print(arguments)
-
 
     # parallel computation
     num_cores = multiprocessing.cpu_count()
