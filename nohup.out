@@ -1,0 +1,56 @@
+Running with 12 cores.
+WARNING:root:Directory calculations/calculation34963 already exists. Will be overwritten.
+Running with 12 cores.
+Running with 12 cores.
+Traceback (most recent call last):
+  File "main_generation.py", line 16, in <module>
+    execute(nuclei_lst, TALYS_PATH, XML_PATH, NUM_QS, BE_STEP)
+  File "/home/melles/REACLIB-SOLNAR/data_generate.py", line 264, in execute
+    perform_calculation(arguments[0])
+  File "/home/melles/REACLIB-SOLNAR/data_generate.py", line 117, in perform_calculation
+    print(f"Predicted Q: {calculation_idx}, {current_be - binding_energy_to_mass_excess(baseline_mes[1])}")
+TypeError: binding_energy_to_mass_excess() missing 2 required positional arguments: 'z' and 'binding_energy'
+Running with 12 cores.
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8823180999779652
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8818180999778633
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.8813180999777614
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880818099977887
+Predicted Q: 35103, -1.880318099977785
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7fcd00d55d4a
+#1  0x7fcd00d56859
+#2  0x7fcd00d5753f
+#3  0x7fcd00f969c6
+#4  0x7fcd00f96cbc
+#5  0x560441b197b5
+#6  0x560441b1c63f
+#7  0x560441ca9480
+#8  0x560441ca92c8
+#9  0x560441ca9315
+#10  0x7fcd009fd0b2
+#11  0x56044194a49d
+#12  0xffffffffffffffff
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation35103/Does it exist? Terminating...
