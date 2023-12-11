@@ -35,7 +35,7 @@ XML_PATH = "input_data/webnucleo-nuc2021.xml"
 # number of Q-value steps (must be odd)
 NUM_QS = 21
 
-# binding energy per nucleon fractional step
+# Q-value step [MeV]
 Q_STEP = 0.1
 
 # proton and neutron mass in MeV, reference: https://www.nist.gov/pml/fundamental-physical-constants
@@ -102,26 +102,23 @@ def perform_calculation(arguments):
     q_step          : step in Q-value between each calculation
     num_qs          : number of Q-values to be used (odd number)
     talys_path      : path to TALYS binary to be used in the calculations"""
-    n, z, baseline_mes, be_step, num_qs, talys_path, q_num, ld_idx = arguments
+    n, z, baseline_mes, q_step, num_qs, talys_path, q_num, ld_idx = arguments
     calculation_idx = os.getpid()
     baseline_be = mass_excess_to_bindning_energy(n, z, baseline_mes[0])
 
     init_calculation(calculation_idx)
-
-    # iterate over each calculation
-    for idx in range(num_qs):
-        for ld_idx in range(1, 7): 
-            # confirmed to give a +/- (num_qs - 1)/2 even spread
-            current_be = baseline_be + (q_step)*(idx - (num_qs - 1)/2)
-            # test what the Q-value "should" be
-            Q_value = - current_be + binding_energy_to_mass_excess(n+1, z, baseline_mes[1])
-            current_me = (binding_energy_to_mass_excess(n, z, current_be), baseline_mes[1])
-            prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
-            def_path = os.path.abspath(os.getcwd())
-            os.chdir(f"calculations/calculation{calculation_idx}")
-            os.system(f"{talys_path} < input > talys.out")
-            os.chdir(def_path)
-            save_calculation_results(calculation_idx, n, z, f"{idx:03d}" + "-" + f"{ld_idx:03d}" + "-" + str(round(Q_value, 4)))
+ 
+    # confirmed to give a +/- (num_qs - 1)/2 even spread
+    current_be = baseline_be + (q_step)*(q_num - (num_qs - 1)/2)
+    # test what the Q-value "should" be
+    q_value = - current_be + binding_energy_to_mass_excess(n+1, z, baseline_mes[1])
+    current_me = (binding_energy_to_mass_excess(n, z, current_be), baseline_mes[1])
+    prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
+    def_path = os.path.abspath(os.getcwd())
+    os.chdir(f"calculations/calculation{calculation_idx}")
+    os.system(f"{talys_path} < input > talys.out")
+    os.chdir(def_path)
+    save_calculation_results(calculation_idx, n, z, f"{q_num:03d}" + "-" + f"{ld_idx:03d}" + "-" + str(round(q_value, 4)))
 
     #clean_calculation(calculation_idx)
 
@@ -257,7 +254,7 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, q_step):
         for idx in range(num_qs):
             for ld_idx in range(1, 7): 
                 if me is not None: # checks that we have data for the product
-                    arguments.append((n, z, me, be_step, num_qs, talys_path, idx, ld_idx))
+                    arguments.append((n, z, me, q_step, num_qs, talys_path, idx, ld_idx))
 
     print(arguments)
 
