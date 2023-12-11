@@ -101,24 +101,21 @@ def perform_calculation(arguments):
     be_step         : fractional step in binding energy per nucleon between each calculation
     num_qs          : number of Q-values to be used (odd number)
     talys_path      : path to TALYS binary to be used in the calculations"""
-    n, z, baseline_mes, be_step, num_qs, talys_path = arguments
+    n, z, baseline_mes, be_step, num_qs, talys_path, q_num, ld_idx = arguments
     calculation_idx = os.getpid()
     baseline_be = mass_excess_to_bindning_energy(n, z, baseline_mes[0])
 
     init_calculation(calculation_idx)
 
-    # iterate over each calculation
-    for idx in range(num_qs):
-        for ld_idx in range(1, 7): 
-            # confirmed to give a +/- (num_qs - 1)/2 even spread
-            current_be = baseline_be * (1 + (be_step)*(idx - (num_qs - 1)/2))
-            current_me = (binding_energy_to_mass_excess(n, z, current_be), baseline_mes[1])
-            prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
-            def_path = os.path.abspath(os.getcwd())
-            os.chdir(f"calculations/calculation{calculation_idx}")
-            os.system("./talys < input > talys.out")
-            os.chdir(def_path)
-            save_calculation_results(calculation_idx, n, z, str(idx) + str(ld_idx))
+    # confirmed to give a +/- (num_qs - 1)/2 even spread
+    current_be = baseline_be * (1 + (be_step)*(q_num - (num_qs - 1)/2))
+    current_me = (binding_energy_to_mass_excess(n, z, current_be), baseline_mes[1])
+    prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
+    def_path = os.path.abspath(os.getcwd())
+    os.chdir(f"calculations/calculation{calculation_idx}")
+    os.system("./talys < input > talys.out")
+    os.chdir(def_path)
+    save_calculation_results(calculation_idx, n, z, str(q_num) + str(ld_idx))
 
     #clean_calculation(calculation_idx)
 
@@ -253,10 +250,16 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, be_step):
         
     baseline_me = baseline_mass_excess(total_baseline_me_array, ns, zs)
 
+
+    # create full list of arguments
     arguments = []
     for n, z, me in zip(ns, zs, baseline_me):
-        if me is not None: # checks that we have data for the product
-            arguments.append((n, z, me, be_step, num_qs, talys_path))
+        for idx in range(num_qs):
+            for ld_idx in range(1, 7): 
+                if me is not None: # checks that we have data for the product
+                    arguments.append((n, z, me, be_step, num_qs, talys_path, idx, ld_idx))
+
+    print(arguments)
 
 
     # parallel computation
