@@ -64,7 +64,7 @@ def FRDM_masses(xml_path, *other):
     xml_path : path to webnucleo library file"""
     tree = ET.ElementTree(file=xml_path)
     root = tree.getroot()
-    out_array = np.empty((len(root), 4), dtype=tuple)
+    out_array = np.zeros((len(root), 4))
     for i, child in enumerate(root):
         out_array[i, 0], out_array[i, 1], out_array[i, 2], out_array[i, 3] = int(child[1].text) - int(child[0].text), int(child[0].text), float(child[3].text), 0 # uncertainty set to 0 - add check
     return out_array
@@ -75,7 +75,7 @@ def DZ10_masses(ame20_path, params, nuclei_lst):
     ame20_path  : path to ame20 data file
     params      : parameters of dz10 model
     nuclei_lst  : list of nuclei for which we want to calculate rates """
-    out_array = np.empty((9000, 4), dtype=tuple)
+    out_array = np.zeros((9000, 4))
     l = 0
     with open(ame20_path, "r") as f:
         for i in range(0, 36):
@@ -104,14 +104,16 @@ def DZ10_masses(ame20_path, params, nuclei_lst):
                 experimental1 = True
         if not experimental:
             out_array[l, 0], out_array[l, 1], out_array[l, 2], out_array[l, 3] = n, z, binding_energy_to_mass_excess(n, z, DZ10(n, z, params)), 0
-            print(DZ10(n, z, params))
             l += 1
         if not experimental1:
             out_array[l, 0], out_array[l, 1], out_array[l, 2], out_array[l, 3] = n1, z, binding_energy_to_mass_excess(n1, z, DZ10(n1, z, params)), 0
             l += 1
-    for entry in out_array:
-        if entry[0] is not None:
-            print(entry)
+
+    # sort by neutron number, and proton number second
+    column_sort = np.lexsort((out_array[:,0], out_array[:,1]))
+
+    out_array = out_array[column_sort]
+
     return out_array
         
 
@@ -122,10 +124,12 @@ def baseline_mass_excess(nzme_array, ns, zs):
     zs              : list of protons to search for, with each n"""
     be_out_array = np.empty(len(ns), dtype=np.ndarray)
     for i, (n, z) in enumerate(zip(ns, zs)):
-        for idx, nzme in enumerate(np.vsplit(nzme_array, 8230)):
-            if nzme[0][0] == n and nzme[0][1] == z:
-                if nzme_array[idx + 1][0] == n+1 and nzme_array[idx+1][1] == z:
-                    be_out_array[i] = np.array((nzme[0][2], nzme_array[idx+1][2]))
+        for idx, nzme in enumerate(np.vsplit(nzme_array, len(nzme_array))):
+            if int(nzme[0][0]) == n and int(nzme[0][1]) == z:
+                print(int(nzme_array[idx + 1][0]), n+1, int(nzme_array[idx+1][1]), z)
+                if int(nzme_array[idx + 1][0]) == n+1 and int(nzme_array[idx+1][1]) == z:
+                    # TODO: check, is there a better estimate than the "max" of the uncertainties?
+                    be_out_array[i] = np.array((nzme[0][2], nzme_array[idx+1][2], max(nzme[0][3], nzme_array[idx+1][3])))
                 else:
                     be_out_array[i] = None  # if we do not have data for the product, do not calculate
     return be_out_array
@@ -302,7 +306,6 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, q_step, mass_function, pa
         
     baseline_me = baseline_mass_excess(total_baseline_me_array, ns, zs)
 
-
     # create full list of arguments
     arguments = []
     for n, z, me in zip(ns, zs, baseline_me):
@@ -323,5 +326,6 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, q_step, mass_function, pa
     pool.join()
 
 if __name__ == "__main__":
-    DZ10_masses("input_data/ame20.txt", dz10_standard_params, [[85, 50]])
+    a = DZ10_masses("input_data/ame20.txt", dz10_standard_params, [[100, 50]])
+    print(baseline_mass_excess(a, [101], [50]))
     print("File should be imported, then run 'execute()' with the proper arguments.")
