@@ -50,9 +50,14 @@ MEVTOU = 931.49410242
 # mass excess of a neutron, from REACLIB data
 MENEUTRON = 8.07132
 
+# standard parameters for DZ10 model
+dz10_standard_params = [17.74799982094152, 16.25161355526155, 0.705100090804503,
+          37.378328815961694, 52.40309615915015, 5.192531960013464,
+          0.46472710051933575, -2.1083462345707162, 0.020788744907550675,
+          41.1572619187368]
 
 
-def read_xml_baseline_masses(xml_path):
+def FRDM_masses(xml_path):
     """Reads the baseline masses from XML webnucleo file and returns array 
     with entries on form (N, Z, mass_excess).
     xml_path : path to webnucleo library file"""
@@ -62,6 +67,11 @@ def read_xml_baseline_masses(xml_path):
     for i, child in enumerate(root):
         out_array[i, 0], out_array[i, 1], out_array[i, 2] = int(child[1].text) - int(child[0].text), int(child[0].text), float(child[3].text) # N och A here?
     return out_array
+
+def DZ10_masses(params, ame20_path):
+    """Calculates baseline mass excess of non-measured masses using DZ10 model,
+    and takes theoretical masses from AME20"""
+    pass
 
 def baseline_mass_excess(nzme_array, ns, zs):
     """Returns the baseline mass excess from the stored array of N, Z and mass excess.
