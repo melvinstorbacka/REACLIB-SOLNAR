@@ -17,7 +17,7 @@ import signal
 import shutil
 import multiprocessing
 import logging
-from dz10fit1_1 import DZ10
+from  src.dz10fit1_1 import DZ10
 
 
 import numpy as np
@@ -75,8 +75,8 @@ def DZ10_masses(ame20_path, params, nuclei_lst):
     ame20_path  : path to ame20 data file
     params      : parameters of dz10 model
     nuclei_lst  : list of nuclei for which we want to calculate rates """
-    out_array = np.zeros((9000, 4))
-    l = 0
+    out_array = np.zeros((10000, 4)) # up to 10000 nuclei currently
+    counter = 0
     with open(ame20_path, "r") as f:
         for i in range(0, 36):
             f.readline()
@@ -89,8 +89,8 @@ def DZ10_masses(ame20_path, params, nuclei_lst):
             ME = line[29:56]
             if "#" not in ME:
                 ME_line = ME.split()
-                out_array[l, 0], out_array[l, 1], out_array[l, 2], out_array[l, 3] = n, z, float(ME_line[0])/1000, float(ME_line[1])/1000
-                l += 1
+                out_array[counter, 0], out_array[counter, 1], out_array[counter, 2], out_array[counter, 3] = n, z, float(ME_line[0])/1000, float(ME_line[1])/1000
+                counter += 1
     for nucleus in nuclei_lst:
         experimental = False
         experimental1 = False
@@ -103,11 +103,11 @@ def DZ10_masses(ame20_path, params, nuclei_lst):
             elif entry[0] == n1 and entry[1] == z:
                 experimental1 = True
         if not experimental:
-            out_array[l, 0], out_array[l, 1], out_array[l, 2], out_array[l, 3] = n, z, binding_energy_to_mass_excess(n, z, DZ10(n, z, params)), 0
-            l += 1
+            out_array[counter, 0], out_array[counter, 1], out_array[counter, 2], out_array[counter, 3] = n, z, binding_energy_to_mass_excess(n, z, DZ10(n, z, params)), 0
+            counter += 1
         if not experimental1:
-            out_array[l, 0], out_array[l, 1], out_array[l, 2], out_array[l, 3] = n1, z, binding_energy_to_mass_excess(n1, z, DZ10(n1, z, params)), 0
-            l += 1
+            out_array[counter, 0], out_array[counter, 1], out_array[counter, 2], out_array[counter, 3] = n1, z, binding_energy_to_mass_excess(n1, z, DZ10(n1, z, params)), 0
+            counter += 1
 
     # sort by neutron number, and proton number second
     column_sort = np.lexsort((out_array[:,0], out_array[:,1]))
@@ -281,7 +281,7 @@ def move_to_long_term_storage(n, z, storage_path):
     return
 
 
-def execute(nuclei_lst, talys_path, data_path, num_qs, q_step, mass_function, params=None):
+def execute(nuclei_lst, talys_path, data_path, num_qs, num_qs_exp, q_step, mass_function, params=None):
     """Generates reaction rate data for passed nuclei and parameters.
     nuclei_lst      : full list of all nuclei to be changed, with entries formatted as (N, Z)
     talys_path      : path to TALYS binary to be used in the calculations
@@ -306,6 +306,8 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, q_step, mass_function, pa
         
     baseline_me = baseline_mass_excess(total_baseline_me_array, ns, zs)
 
+    print(baseline_me)
+
     # create full list of arguments
     arguments = []
     for n, z, me in zip(ns, zs, baseline_me):
@@ -313,17 +315,24 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, q_step, mass_function, pa
             for ld_idx in range(1, 7): 
                 if me is not None: # checks that we have data for the product
                     arguments.append((n, z, me, q_step, num_qs, talys_path, idx, ld_idx))
+        # checks if we have uncertainty from AME20. If so, run more refined calculations
+        # within +- 2*uncertainty (2?) TODO: ask
+        if me[-1] != 0:
+            for idx in range(-int((num_qs_exp-1)/2), num_qs_exp - int((num_qs_exp-1)/2), 1):
+                for ld_idx in range(1, 7): 
+                    arguments.append((n, z, me, me[-1]/(num_qs_exp-1), num_qs_exp, talys_path, idx, ld_idx))
 
+    print(len(arguments))
 
     # parallel computation
-    num_cores = multiprocessing.cpu_count()
-    print(f"Running with {num_cores} cores.")
-    pool = multiprocessing.Pool(num_cores)
+    #num_cores = multiprocessing.cpu_count()
+    #print(f"Running with {num_cores} cores.")
+    #pool = multiprocessing.Pool(num_cores)
 
-    pool.map_async(perform_calculation, arguments)
+    #pool.map_async(perform_calculation, arguments)
 
-    pool.close()
-    pool.join()
+    #pool.close()
+    #pool.join()
 
 if __name__ == "__main__":
     a = DZ10_masses("input_data/ame20.txt", dz10_standard_params, [[100, 50]])

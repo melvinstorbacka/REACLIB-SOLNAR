@@ -14,8 +14,8 @@ import matplotlib
 import seaborn as sns
 import scipy.stats as stats
 
-from utilterms import *
-from utilloops import *
+from src.utilterms import *
+from src.utilloops import *
 #All model terms now self-contained in utilterms
 # If you want to add any new terms you can add them below or in utilterms.py
 
