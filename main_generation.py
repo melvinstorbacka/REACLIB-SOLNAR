@@ -17,7 +17,7 @@ NUM_QS_EXP = 21
 # binding energy per nucleon fractional step
 BE_STEP = 0.0005
 
-nuclei_lst = [[100, 50]]
+nuclei_lst = [[80, 50]]
 
 dz10_standard_params = [17.74799982094152, 16.25161355526155, 0.705100090804503,
           37.378328815961694, 52.40309615915015, 5.192531960013464,

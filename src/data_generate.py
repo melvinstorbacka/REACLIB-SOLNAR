@@ -281,13 +281,17 @@ def move_to_long_term_storage(n, z, storage_path):
     return
 
 
-def execute(nuclei_lst, talys_path, data_path, num_qs, num_qs_exp, q_step, mass_function, params=None):
+def execute(nuclei_lst, talys_path, data_path, num_qs, num_qs_exp, q_step, mass_function, params=None, exp_uncertainty_multiple=2):
     """Generates reaction rate data for passed nuclei and parameters.
-    nuclei_lst      : full list of all nuclei to be changed, with entries formatted as (N, Z)
-    talys_path      : path to TALYS binary to be used in the calculations
-    xml_path        : path to xml file for the baseline masses to be used
-    q_step          : step in Q-value between each calculation
-    num_qs          : number of Q-values to be used (odd number)"""
+    nuclei_lst                  : full list of all nuclei to be changed, with entries formatted as (N, Z)
+    talys_path                  : path to TALYS binary to be used in the calculations
+    data_path                   : path to xml file for the baseline masses to be used
+    num_qs                      : number of Q-values to be used (odd number)
+    num_qs_exp                  : number of Q-values to be used for experimental nuclei (odd number)
+    q_step                      : step in Q-value between each calculation
+    mass_function               : function through which to obtain the baseline masses. Currently DZ10/AME or FRDM
+    params                      : parameters to use for mass function
+    exp_uncertainty_multiple    : multiple of experimental uncertainty within which experimental nuclei will be sampled"""
 
     if num_qs % 2 == 0:
         logging.error("Number of Q-steps is not odd. Terminating...")
@@ -318,21 +322,19 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, num_qs_exp, q_step, mass_
         # checks if we have uncertainty from AME20. If so, run more refined calculations
         # within +- 2*uncertainty (2?) TODO: ask
         if me[-1] != 0:
-            for idx in range(-int((num_qs_exp-1)/2), num_qs_exp - int((num_qs_exp-1)/2), 1):
+            for idx in range(num_qs_exp):
                 for ld_idx in range(1, 7): 
-                    arguments.append((n, z, me, me[-1]/(num_qs_exp-1), num_qs_exp, talys_path, idx, ld_idx))
-
-    print(len(arguments))
+                    arguments.append((n, z, me, exp_uncertainty_multiple*2*me[-1]/(num_qs_exp-1), num_qs_exp, talys_path, idx, ld_idx))
 
     # parallel computation
-    #num_cores = multiprocessing.cpu_count()
-    #print(f"Running with {num_cores} cores.")
-    #pool = multiprocessing.Pool(num_cores)
+    num_cores = multiprocessing.cpu_count()
+    print(f"Running with {num_cores} cores.")
+    pool = multiprocessing.Pool(num_cores)
 
-    #pool.map_async(perform_calculation, arguments)
+    pool.map_async(perform_calculation, arguments)
 
-    #pool.close()
-    #pool.join()
+    pool.close()
+    pool.join()
 
 if __name__ == "__main__":
     a = DZ10_masses("input_data/ame20.txt", dz10_standard_params, [[100, 50]])
