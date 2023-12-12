@@ -1,4 +1,4 @@
-from data_generate import execute
+from src.data_generate import execute
 
 TALYS_PATH = '~/REACLIB-SOLNAR/talys'
 
@@ -11,6 +11,6 @@ NUM_QS = 1
 # binding energy per nucleon fractional step
 BE_STEP = 0.0005
 
-nuclei_lst = [[86, 50], [86, 49]]
+nuclei_lst = [[74, 50]]
 
 execute(nuclei_lst, TALYS_PATH, XML_PATH, NUM_QS, BE_STEP)

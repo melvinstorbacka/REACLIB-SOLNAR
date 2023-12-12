@@ -1,56 +1,313 @@
+[(86, 50, array([-56.504, -50.31 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 1), (86, 50, array([-56.504, -50.31 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 2), (86, 50, array([-56.504, -50.31 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 3), (86, 50, array([-56.504, -50.31 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 4), (86, 50, array([-56.504, -50.31 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 5), (86, 50, array([-56.504, -50.31 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 6), (86, 49, array([-47.199, -41.35 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 1), (86, 49, array([-47.199, -41.35 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 2), (86, 49, array([-47.199, -41.35 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 3), (86, 49, array([-47.199, -41.35 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 4), (86, 49, array([-47.199, -41.35 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 5), (86, 49, array([-47.199, -41.35 ]), 0.0005, 1, '~/REACLIB-SOLNAR/talys', 0, 6)]
 Running with 12 cores.
-WARNING:root:Directory calculations/calculation34963 already exists. Will be overwritten.
 Running with 12 cores.
 Running with 12 cores.
-Traceback (most recent call last):
-  File "main_generation.py", line 16, in <module>
-    execute(nuclei_lst, TALYS_PATH, XML_PATH, NUM_QS, BE_STEP)
-  File "/home/melles/REACLIB-SOLNAR/data_generate.py", line 264, in execute
-    perform_calculation(arguments[0])
-  File "/home/melles/REACLIB-SOLNAR/data_generate.py", line 117, in perform_calculation
-    print(f"Predicted Q: {calculation_idx}, {current_be - binding_energy_to_mass_excess(baseline_mes[1])}")
-TypeError: binding_energy_to_mass_excess() missing 2 required positional arguments: 'z' and 'binding_energy'
 Running with 12 cores.
-Predicted Q: 35103, -1.8823180999779652
-Predicted Q: 35103, -1.8823180999779652
-Predicted Q: 35103, -1.8823180999779652
-Predicted Q: 35103, -1.8823180999779652
-Predicted Q: 35103, -1.8823180999779652
-Predicted Q: 35103, -1.8823180999779652
-Predicted Q: 35103, -1.8818180999778633
-Predicted Q: 35103, -1.8818180999778633
-Predicted Q: 35103, -1.8818180999778633
-Predicted Q: 35103, -1.8818180999778633
-Predicted Q: 35103, -1.8818180999778633
-Predicted Q: 35103, -1.8818180999778633
-Predicted Q: 35103, -1.8813180999777614
-Predicted Q: 35103, -1.8813180999777614
-Predicted Q: 35103, -1.8813180999777614
-Predicted Q: 35103, -1.8813180999777614
-Predicted Q: 35103, -1.8813180999777614
-Predicted Q: 35103, -1.8813180999777614
-Predicted Q: 35103, -1.880818099977887
-Predicted Q: 35103, -1.880818099977887
-Predicted Q: 35103, -1.880818099977887
-Predicted Q: 35103, -1.880818099977887
-Predicted Q: 35103, -1.880818099977887
-Predicted Q: 35103, -1.880818099977887
-Predicted Q: 35103, -1.880318099977785
+Running with 12 cores.
+WARNING:root:Directory calculations/calculation128643 already exists. Will be overwritten.
+WARNING:root:Directory calculations/calculation128642 already exists. Will be overwritten.
+WARNING:root:Directory calculations/calculation128646 already exists. Will be overwritten.
+WARNING:root:Directory calculations/calculation128644 already exists. Will be overwritten.
+Running with 12 cores.
+Running with 12 cores.
+1116.9639091999852 1116.9639091999925
+1116.9639091999852 1116.9639091999925
+1116.9639091999852 1116.9639091999925
+1116.9639091999852 1116.9639091999925
+1116.9639091999852 1116.9639091999925
+1116.9639091999852 1116.9639091999925
+1100.7149245100009 1100.7149245100081
+1100.7149245100009 1100.7149245100081
+1100.7149245100009 1100.7149245100081
+1100.7149245100009 1100.7149245100081
+1100.7149245100009 1100.7149245100081
+1100.7149245100009 1100.7149245100081
+Running with 12 cores.
+WARNING:root:Directory calculations/calculation133573 already exists. Will be overwritten.
+WARNING:root:Directory calculations/calculation133574 already exists. Will be overwritten.
+Running with 12 cores.
+Running with 12 cores.
+-50.30999999999767 1116.9639091999925
+-50.30999999999767 1116.9639091999925
+-50.30999999999767 1116.9639091999925
+-50.30999999999767 1116.9639091999925
+-50.30999999999767 1116.9639091999925
+-50.30999999999767 1116.9639091999925
+-41.34999999999127 1100.7149245100081
+-41.34999999999127 1100.7149245100081
+-41.34999999999127 1100.7149245100081
+-41.34999999999127 1100.7149245100081
+-41.34999999999127 1100.7149245100081
+-41.34999999999127 1100.7149245100081
+Running with 12 cores.
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
+0.0005 0 1
 At line 50 of file incidentecis.f (unit = 9)
 Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
 
 Error termination. Backtrace:
-#0  0x7fcd00d55d4a
-#1  0x7fcd00d56859
-#2  0x7fcd00d5753f
-#3  0x7fcd00f969c6
-#4  0x7fcd00f96cbc
-#5  0x560441b197b5
-#6  0x560441b1c63f
-#7  0x560441ca9480
-#8  0x560441ca92c8
-#9  0x560441ca9315
-#10  0x7fcd009fd0b2
-#11  0x56044194a49d
-#12  0xffffffffffffffff
-ERROR:root:Could not copy 'astrorate.g' from calculations/calculation35103/Does it exist? Terminating...
+At line 55 of file directecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisdisc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7fb124475d11 in ???
+#1  0x7fb124476859 in ???
+#2  0x7fb12447753f in ???
+#3  0x7fb1246b69c6 in ???
+#4  0x7fb1246b6cbc in ???
+#5  0x5654104b47b5 in ???
+#6  0x5654104b763f in ???
+#7  0x565410644480 in ???
+#8  0x5654106442c8 in ???
+#9  0x565410644315 in ???
+#10  0x7fb12411d082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x5654102e549d in ???
+#12  0xffffffffffffffff in ???
+#0  0x7fcd5e39ed11 in ???
+#1  0x7fcd5e39f859 in ???
+#2  0x7fcd5e3a053f in ???
+#3  0x7fcd5e5df9c6 in ???
+#4  0x7fcd5e5dfcbc in ???
+#5  0x558c6efbdf36 in ???
+#6  0x558c6efbef3e in ???
+#7  0x558c6f2a34e2 in ???
+#8  0x558c6f2a32c8 in ???
+#9  0x558c6f2a3315 in ???
+#10  0x7fcd5e046082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x558c6ef4449d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134648/Does it exist? Terminating...
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134649/Does it exist? Terminating...
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7f39bd8c6d11 in ???
+#1  0x7f39bd8c7859 in ???
+#2  0x7f39bd8c853f in ???
+#3  0x7f39bdb079c6 in ???
+#4  0x7f39bdb07cbc in ???
+#5  0x55ea5ffd27b5 in ???
+#6  0x55ea5ffd563f in ???
+#7  0x55ea60162480 in ???
+#8  0x55ea601622c8 in ???
+#9  0x55ea60162315 in ???
+#10  0x7f39bd56e082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x55ea5fe0349d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134645/Does it exist? Terminating...
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7fbb45174d11 in ???
+#1  0x7fbb45175859 in ???
+#2  0x7fbb4517653f in ???
+#3  0x7fbb453b59c6 in ???
+#4  0x7fbb453b5cbc in ???
+#5  0x5644b538c7b5 in ???
+#6  0x5644b538f63f in ???
+#7  0x5644b551c480 in ???
+#8  0x5644b551c2c8 in ???
+#9  0x5644b551c315 in ???
+#10  0x7fbb44e1c082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x5644b51bd49d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134646/Does it exist? Terminating...
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7f822359cd11 in ???
+#1  0x7f822359d859 in ???
+#2  0x7f822359e53f in ???
+#3  0x7f82237dd9c6 in ???
+#4  0x7f82237ddcbc in ???
+#5  0x5601791027b5 in ???
+#6  0x56017910563f in ???
+#7  0x560179292480 in ???
+#8  0x5601792922c8 in ???
+#9  0x560179292315 in ???
+#10  0x7f8223244082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x560178f3349d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134651/Does it exist? Terminating...
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7fd7a20d4d11 in ???
+#1  0x7fd7a20d5859 in ???
+#2  0x7fd7a20d653f in ???
+#3  0x7fd7a23159c6 in ???
+#4  0x7fd7a2315cbc in ???
+#5  0x55db7fb5c7b5 in ???
+#6  0x55db7fb5f63f in ???
+#7  0x55db7fcec480 in ???
+#8  0x55db7fcec2c8 in ???
+#9  0x55db7fcec315 in ???
+#10  0x7fd7a1d7c082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x55db7f98d49d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134652/Does it exist? Terminating...
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7fc3c40cfd11 in ???
+#1  0x7fc3c40d0859 in ???
+#2  0x7fc3c40d153f in ???
+#3  0x7fc3c43109c6 in ???
+#4  0x7fc3c4310cbc in ???
+#5  0x564290c377b5 in ???
+#6  0x564290c3a63f in ???
+#7  0x564290dc7480 in ???
+#8  0x564290dc72c8 in ???
+#9  0x564290dc7315 in ???
+#10  0x7fc3c3d77082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x564290a6849d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134644/Does it exist? Terminating...
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7f91e455cd11 in ???
+#1  0x7f91e455d859 in ???
+#2  0x7f91e455e53f in ???
+#3  0x7f91e479d9c6 in ???
+#4  0x7f91e479dcbc in ???
+#5  0x55e1ed59b7b5 in ???
+#6  0x55e1ed59e63f in ???
+#7  0x55e1ed72b480 in ???
+#8  0x55e1ed72b2c8 in ???
+#9  0x55e1ed72b315 in ???
+#10  0x7f91e4204082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x55e1ed3cc49d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134641/Does it exist? Terminating...
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7f7aec470d11 in ???
+#1  0x7f7aec471859 in ???
+#2  0x7f7aec47253f in ???
+#3  0x7f7aec6b19c6 in ???
+#4  0x7f7aec6b1cbc in ???
+#5  0x56026c1497b5 in ???
+#6  0x56026c14c63f in ???
+#7  0x56026c2d9480 in ???
+#8  0x56026c2d92c8 in ???
+#9  0x56026c2d9315 in ???
+#10  0x7f7aec118082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x56026bf7a49d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134643/Does it exist? Terminating...
+Running with 12 cores.
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7f66ccf4cd11 in ???
+#1  0x7f66ccf4d859 in ???
+#2  0x7f66ccf4e53f in ???
+#3  0x7f66cd18d9c6 in ???
+#4  0x7f66cd18dcbc in ???
+#5  0x55fc4f8087b5 in ???
+#6  0x55fc4f80b63f in ???
+#7  0x55fc4f998480 in ???
+#8  0x55fc4f9982c8 in ???
+#9  0x55fc4f998315 in ???
+#10  0x7f66ccbf4082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x55fc4f63949d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134642/Does it exist? Terminating...
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7f2b95f65d11 in ???
+#1  0x7f2b95f66859 in ???
+#2  0x7f2b95f6753f in ???
+#3  0x7f2b961a69c6 in ???
+#4  0x7f2b961a6cbc in ???
+#5  0x55ecb62e57b5 in ???
+#6  0x55ecb62e863f in ???
+#7  0x55ecb6475480 in ???
+#8  0x55ecb64752c8 in ???
+#9  0x55ecb6475315 in ???
+#10  0x7f2b95c0d082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x55ecb611649d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134650/Does it exist? Terminating...
+At line 50 of file incidentecis.f (unit = 9)
+Fortran runtime error: Cannot open file 'ecisinc.inp': No such file or directory
+
+Error termination. Backtrace:
+#0  0x7f3302398d11 in ???
+#1  0x7f3302399859 in ???
+#2  0x7f330239a53f in ???
+#3  0x7f33025d99c6 in ???
+#4  0x7f33025d9cbc in ???
+#5  0x55aa41c5f7b5 in ???
+#6  0x55aa41c6263f in ???
+#7  0x55aa41def480 in ???
+#8  0x55aa41def2c8 in ???
+#9  0x55aa41def315 in ???
+#10  0x7f3302040082 in __libc_start_main
+	at ../csu/libc-start.c:308
+#11  0x55aa41a9049d in ???
+#12  0xffffffffffffffff in ???
+ERROR:root:Could not copy 'astrorate.g' from calculations/calculation134647/Does it exist? Terminating...
+Running with 12 cores.
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+0.0005 0 1 0.0
+Running with 12 cores.
+Running with 12 cores.
+Running with 12 cores.
+Running with 12 cores.
+Running with 12 cores.

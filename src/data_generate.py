@@ -47,6 +47,9 @@ ELECTRON_MASS_IN_MEV = 0.51099895000
 # MeV to a.m.u. conversion, reference: https://www.nist.gov/pml/fundamental-physical-constants
 MEVTOU = 931.49410242
 
+# mass excess of a neutron, from REACLIB data
+MENEUTRON = 8.07132
+
 
 
 def read_xml_baseline_masses(xml_path):
@@ -104,21 +107,19 @@ def perform_calculation(arguments):
     talys_path      : path to TALYS binary to be used in the calculations"""
     n, z, baseline_mes, q_step, num_qs, talys_path, q_num, ld_idx = arguments
     calculation_idx = os.getpid()
-    baseline_be = mass_excess_to_bindning_energy(n, z, baseline_mes[0])
 
     init_calculation(calculation_idx)
  
     # confirmed to give a +/- (num_qs - 1)/2 even spread
-    current_be = baseline_be + (q_step)*(q_num - (num_qs - 1)/2)
+    current_me = (baseline_mes[0] + (q_step)*(q_num - (num_qs - 1)/2), baseline_mes[1])
     # test what the Q-value "should" be
-    q_value = - current_be + binding_energy_to_mass_excess(n+1, z, baseline_mes[1])
-    current_me = (binding_energy_to_mass_excess(n, z, current_be), baseline_mes[1])
+    q_value = (current_me[0] + MENEUTRON) - current_me[1]
     prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
     def_path = os.path.abspath(os.getcwd())
     os.chdir(f"calculations/calculation{calculation_idx}")
     os.system(f"{talys_path} < input > talys.out")
     os.chdir(def_path)
-    save_calculation_results(calculation_idx, n, z, f"{q_num:03d}" + "-" + f"{ld_idx:03d}" + "-" + str(round(q_value, 4)))
+    save_calculation_results(calculation_idx, n, z, f"{q_num:03d}" + "-" + f"{ld_idx:03d}" + "-" + str(round(q_value, 5)))
 
     #clean_calculation(calculation_idx)
 
@@ -192,7 +193,7 @@ def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel, talys_path)
         os.kill(os.getpid(), signal.SIGTERM)
     return
 
-def mass_excess_to_bindning_energy(n, z, mass_excess):
+def mass_excess_to_binding_energy(n, z, mass_excess):
     """Converts the input mass excess to binding energy.
     n               : number of neutrons
     z               : number of protons
@@ -207,7 +208,9 @@ def binding_energy_to_mass_excess(n, z, binding_energy):
     """Converts the input binding energy to mass excess.
     n               : number of neutrons
     z               : number of protons
-    binding_energy  : binding energy in MeV"""
+    binding_energy  : binding energy in MeV
+    NOTE: the binding energy and mass excess converters can be used
+    interchageably, since they do exactly the same thing."""
 
     nuclear_mass = -binding_energy + n*NEUTRON_MASS_IN_MEV + z*(PROTON_MASS_IN_MEV + 
                                                                 ELECTRON_MASS_IN_MEV)
