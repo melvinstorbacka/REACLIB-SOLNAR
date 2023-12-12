@@ -17,6 +17,7 @@ import signal
 import shutil
 import multiprocessing
 import logging
+from dz10fit1_1 import DZ10
 
 
 import numpy as np
@@ -57,21 +58,62 @@ dz10_standard_params = [17.74799982094152, 16.25161355526155, 0.705100090804503,
           41.1572619187368]
 
 
-def FRDM_masses(xml_path):
+def FRDM_masses(xml_path, *other):
     """Reads the baseline masses from XML webnucleo file and returns array 
     with entries on form (N, Z, mass_excess).
     xml_path : path to webnucleo library file"""
     tree = ET.ElementTree(file=xml_path)
     root = tree.getroot()
-    out_array = np.empty((len(root), 3), dtype=tuple)
+    out_array = np.empty((len(root), 4), dtype=tuple)
     for i, child in enumerate(root):
-        out_array[i, 0], out_array[i, 1], out_array[i, 2] = int(child[1].text) - int(child[0].text), int(child[0].text), float(child[3].text) # N och A here?
+        out_array[i, 0], out_array[i, 1], out_array[i, 2], out_array[i, 3] = int(child[1].text) - int(child[0].text), int(child[0].text), float(child[3].text), 0 # uncertainty set to 0 - add check
     return out_array
 
-def DZ10_masses(params, ame20_path):
+def DZ10_masses(ame20_path, params, nuclei_lst):
     """Calculates baseline mass excess of non-measured masses using DZ10 model,
-    and takes theoretical masses from AME20"""
-    pass
+    and takes theoretical masses from AME20.
+    ame20_path  : path to ame20 data file
+    params      : parameters of dz10 model
+    nuclei_lst  : list of nuclei for which we want to calculate rates """
+    out_array = np.empty((9000, 4), dtype=tuple)
+    l = 0
+    with open(ame20_path, "r") as f:
+        for i in range(0, 36):
+            f.readline()
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            n = int(line[6:10])
+            z = int(line[11:15])
+            ME = line[29:56]
+            if "#" not in ME:
+                ME_line = ME.split()
+                out_array[l, 0], out_array[l, 1], out_array[l, 2], out_array[l, 3] = n, z, float(ME_line[0])/1000, float(ME_line[1])/1000
+                l += 1
+    for nucleus in nuclei_lst:
+        experimental = False
+        experimental1 = False
+        n = nucleus[0]
+        z = nucleus[1]
+        n1 = nucleus[0] + 1
+        for entry in out_array:
+            if entry[0] == n and entry[1] == z:
+                experimental = True
+            elif entry[0] == n1 and entry[1] == z:
+                experimental1 = True
+        if not experimental:
+            out_array[l, 0], out_array[l, 1], out_array[l, 2], out_array[l, 3] = n, z, binding_energy_to_mass_excess(n, z, DZ10(n, z, params)), 0
+            print(DZ10(n, z, params))
+            l += 1
+        if not experimental1:
+            out_array[l, 0], out_array[l, 1], out_array[l, 2], out_array[l, 3] = n1, z, binding_energy_to_mass_excess(n1, z, DZ10(n1, z, params)), 0
+            l += 1
+    for entry in out_array:
+        if entry[0] is not None:
+            print(entry)
+    return out_array
+        
 
 def baseline_mass_excess(nzme_array, ns, zs):
     """Returns the baseline mass excess from the stored array of N, Z and mass excess.
@@ -235,7 +277,7 @@ def move_to_long_term_storage(n, z, storage_path):
     return
 
 
-def execute(nuclei_lst, talys_path, xml_path, num_qs, q_step):
+def execute(nuclei_lst, talys_path, data_path, num_qs, q_step, mass_function, params=None):
     """Generates reaction rate data for passed nuclei and parameters.
     nuclei_lst      : full list of all nuclei to be changed, with entries formatted as (N, Z)
     talys_path      : path to TALYS binary to be used in the calculations
@@ -252,7 +294,7 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, q_step):
     ns = []
     zs = []
 
-    total_baseline_me_array = read_xml_baseline_masses(xml_path)
+    total_baseline_me_array = mass_function(data_path, params, nuclei_lst)
 
     for nuc in nuclei_lst:
         zs.append(nuc[1])
@@ -281,4 +323,5 @@ def execute(nuclei_lst, talys_path, xml_path, num_qs, q_step):
     pool.join()
 
 if __name__ == "__main__":
+    DZ10_masses("input_data/ame20.txt", dz10_standard_params, [[85, 50]])
     print("File should be imported, then run 'execute()' with the proper arguments.")

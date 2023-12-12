@@ -94,7 +94,7 @@ def DZ10(Nli,Zli,p):
 
 #Main
 
-
+"""
 #Data handling
 with open('bindData/bind2020.dat') as f:
    data = [line.split()[:] for line in f]  
@@ -119,6 +119,7 @@ BEA = np.multiply(BE,Al)
 
 
 NZ= np.column_stack((Nl,Zl))
+"""
 
 
 
