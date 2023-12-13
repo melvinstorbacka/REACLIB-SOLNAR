@@ -18,6 +18,7 @@ import shutil
 import multiprocessing
 import logging
 from  src.dz10fit1_1 import DZ10
+import traceback
 
 
 import numpy as np
@@ -126,7 +127,6 @@ def baseline_mass_excess(nzme_array, ns, zs):
     for i, (n, z) in enumerate(zip(ns, zs)):
         for idx, nzme in enumerate(np.vsplit(nzme_array, len(nzme_array))):
             if int(nzme[0][0]) == n and int(nzme[0][1]) == z:
-                print(int(nzme_array[idx + 1][0]), n+1, int(nzme_array[idx+1][1]), z)
                 if int(nzme_array[idx + 1][0]) == n+1 and int(nzme_array[idx+1][1]) == z:
                     # TODO: check, is there a better estimate than the "max" of the uncertainties?
                     be_out_array[i] = np.array((nzme[0][2], nzme_array[idx+1][2], max(nzme[0][3], nzme_array[idx+1][3])))
@@ -150,7 +150,7 @@ def init_calculation(calculation_idx):
 def clean_calculation(calculation_idx):
     """Removes the folder for the particular calculation
     calculation_idx   : the PID of the current process"""
-    os.rmdir(f"calculations/calculation{calculation_idx}")
+    shutil.rmtree(f"calculations/calculation{calculation_idx}")
     return
 
 def perform_calculation(arguments):
@@ -161,7 +161,8 @@ def perform_calculation(arguments):
     q_step          : step in Q-value between each calculation
     num_qs          : number of Q-values to be used (odd number)
     talys_path      : path to TALYS binary to be used in the calculations"""
-    n, z, baseline_mes, q_step, num_qs, talys_path, q_num, ld_idx = arguments
+    n, z, baseline_mes, q_step, num_qs, talys_path, q_num, ld_idx, exp = arguments
+
     calculation_idx = os.getpid()
 
     init_calculation(calculation_idx)
@@ -175,13 +176,13 @@ def perform_calculation(arguments):
     os.chdir(f"calculations/calculation{calculation_idx}")
     os.system(f"{talys_path} < input > talys.out")
     os.chdir(def_path)
-    save_calculation_results(calculation_idx, n, z, f"{q_num:03d}" + "-" + f"{ld_idx:03d}" + "-" + str(round(q_value, 5)))
+    save_calculation_results(calculation_idx, n, z, f"{q_num:03d}" + "-" + f"{ld_idx:03d}" + "-" + str(round(q_value, 5)), exp)
 
-    #clean_calculation(calculation_idx)
+    clean_calculation(calculation_idx)
 
     return
 
-def save_calculation_results(calculation_idx, n, z, name):
+def save_calculation_results(calculation_idx, n, z, name, exp=False):
     """Moves calculation results from calculations/calculation{i}/ to
     data/{z}-{n}/, and automatically assigns the Q-value from the output file.
     calculation_idx : calculation number id (PID)
@@ -192,8 +193,12 @@ def save_calculation_results(calculation_idx, n, z, name):
     if not f"{z}-{n}" in os.listdir("data"):
         os.mkdir(f"data/{z}-{n}")
     try:
-        shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
+        if not exp:
+            shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
                    f"data/{z}-{n}/astrorate-{name}.g")
+        else:
+            shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
+                   f"data/{z}-{n}/astrorate-{name}-exp.g")
     except FileNotFoundError:
         logging.error("Could not copy 'astrorate.g' from calculations/calculation%s/" +
                       "Does it exist? Terminating...", str(calculation_idx))
@@ -207,8 +212,12 @@ def save_calculation_results(calculation_idx, n, z, name):
                 if "Q(n,g)" in line:
                     QVal = line
                     break
-        with open(f"data/{z}-{n}/astrorate-{name}.g", "a") as f:
-            f.write(QVal)
+        if not exp:
+            with open(f"data/{z}-{n}/astrorate-{name}.g", "a") as f:
+                f.write(QVal)
+        else:
+            with open(f"data/{z}-{n}/astrorate-{name}-exp.g", "a") as f:
+                f.write(QVal)
     except FileNotFoundError:
         logging.error("Could not copy 'talys.out' from calculations/calculation%s/" +
                       "Does it exist? Terminating...", str(calculation_idx))
@@ -310,21 +319,21 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, num_qs_exp, q_step, mass_
         
     baseline_me = baseline_mass_excess(total_baseline_me_array, ns, zs)
 
-    print(baseline_me)
-
     # create full list of arguments
     arguments = []
     for n, z, me in zip(ns, zs, baseline_me):
         for idx in range(num_qs):
             for ld_idx in range(1, 7): 
                 if me is not None: # checks that we have data for the product
-                    arguments.append((n, z, me, q_step, num_qs, talys_path, idx, ld_idx))
+                    arguments.append((n, z, me, q_step, num_qs, talys_path, idx, ld_idx, False))
         # checks if we have uncertainty from AME20. If so, run more refined calculations
         # within +- 2*uncertainty (2?) TODO: ask
         if me[-1] != 0:
+            print(n, z)
             for idx in range(num_qs_exp):
                 for ld_idx in range(1, 7): 
-                    arguments.append((n, z, me, exp_uncertainty_multiple*2*me[-1]/(num_qs_exp-1), num_qs_exp, talys_path, idx, ld_idx))
+                    # TODO: add flag for experimental values?
+                    arguments.append((n, z, me, exp_uncertainty_multiple*2*me[-1]/(num_qs_exp-1), num_qs_exp, talys_path, idx, ld_idx, True))
 
     # parallel computation
     num_cores = multiprocessing.cpu_count()
