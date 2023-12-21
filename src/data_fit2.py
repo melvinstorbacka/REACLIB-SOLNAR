@@ -8,6 +8,8 @@ from src.plot import *
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import LeakyReLU
+from tensorflow import keras
 
 def reaclib_exp(t9, a0, a1, a2, a3, a4, a5, a6):
     """Rate format of REACLIB library."""
@@ -20,8 +22,8 @@ def reaclib_exp(t9, a0, a1, a2, a3, a4, a5, a6):
 
 
 
-z = 11
-n = 13
+z = 50
+n = 123
 
 # the code for fitting the grid
 QG, TG = np.meshgrid(column_q_sort, np.array(templist))
@@ -32,25 +34,29 @@ dataset = [[], []]
 for q_idx, Q_val in enumerate(column_q_sort):
     for t_idx, T_val in enumerate(templist):
         dataset[0].append((Q_val, T_val))
-        #z_array[q_idx, t_idx] = (Q_val**3 - 10*(T_val - 5)**3)
+        if z_array[q_idx, t_idx] != 0:
+            z_array[q_idx, t_idx] = np.log2(z_array[q_idx, t_idx])
+        else:
+            z_array[q_idx, t_idx] = np.log2(1e-30) # this is supposed to approximate 0...
         dataset[1].append((z_array[q_idx, t_idx]))
+
 
 opt = Adam(learning_rate=0.01)
 
 model = Sequential()
-model.add(Dense(128, activation='relu',input_dim=2))
-model.add(Dense(128, activation='relu'))
-model.add(Dense(64, activation='relu'))   
-model.add(Dense(32,activation='relu'))
+model.add(Dense(32, activation='sigmoid',input_dim=2))
+#model.add(Dense(128, activation='relu'))
+#model.add(Dense(32, activation='relu'))   
+model.add(Dense(32,activation='sigmoid'))
 model.add(Dense(1))
 
 
-model.compile(loss='mse', optimizer=opt)
+model.compile(loss='mae', optimizer=opt)
 # dataset[0], dataset[1]
-model.fit(dataset[0], dataset[1], epochs=600, batch_size=30, verbose=2)
+model.fit(dataset[0], dataset[1], epochs=400, batch_size=20, verbose=2)
 
 
-plt.plot(model.history.history['loss'], color='blue')
+plt.plot((model.history.history['loss']), color='blue')
 plt.savefig("NNLoss")
 
 
@@ -86,14 +92,29 @@ print(model.summary())
 
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
-ax.plot_surface(TG, QG, z_array.transpose(), cmap='plasma', alpha=0.5)
-#ax.set_zlim(0,np.max(z_array))
+ax.plot_surface(TG, QG, 2**(z_array.transpose()), cmap='plasma', alpha=0.5)
+ax.set_zlim(0,2**(np.max(z_array)))
 ax.set_xlabel("Temperature [GK]")
 ax.set_ylabel("Q-value [MeV]")
 
-ax.plot_surface(X, Y, ZFit, color="blue")
+ax.plot_surface(X, Y, 2**(ZFit), color="blue")
 
 #plt.plot(column_q_sort, plot)
 #plt.plot(column_q_sort, z_array[:, idx])
 #plt.yscale("log")
 plt.savefig("test3.png")
+
+
+tempsLin = np.arange(0.0001, 10, 0.03)
+
+plotarray = [(column_q_sort[2], t) for t in tempsLin]
+
+
+print(column_q_sort[2])
+
+ax2 = fig.add_subplot()
+
+ax2.plot(tempsLin, 2**(model.predict(plotarray)), color="green")
+ax2.plot(templist, 2**(z_array[2, :]))
+
+plt.savefig("constQ.png")

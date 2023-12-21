@@ -8,8 +8,8 @@ with open("src/symb_vs_z.json") as f:
 
 z_vs_symbol = {v: k for k, v in symbol_vs_z.items()}
 
-z = 60
-n = 93
+z = 11
+n = 13
 
 dir_path = f"./data/{z}-{n}/"
 
@@ -42,10 +42,15 @@ first = True
 templist = []
 
 for idx, file_path in enumerate(files):
-    #if len(file_path.split("-")) == 4:
-    Q = file_path.split("-")[3].strip(".g")
-    #else:
-     #   Q = -float(file_path.split("-")[4].strip(".g"))
+    print(file_path.split("-"))
+    if len(file_path.split("-")) == 4:
+        Q = file_path.split("-")[3].strip(".g")
+    elif len(file_path.split("-")) == 5 and "exp" not in file_path.split("-")[-1]:
+        Q = -float(file_path.split("-")[4].strip(".g"))
+    elif len(file_path.split("-")) == 5:
+        Q = -float(file_path.split("-")[3].strip(".g"))
+    else:
+        Q = -float(file_path.split("-")[4].strip(".g"))
     if f"-00{ldmodel}-{Q}" in file_path:
         with open(dir_path + file_path, "r") as f:
             f.readline()
