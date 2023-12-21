@@ -8,8 +8,8 @@ with open("src/symb_vs_z.json") as f:
 
 z_vs_symbol = {v: k for k, v in symbol_vs_z.items()}
 
-z = 49
-n = 80
+z = 60
+n = 93
 
 dir_path = f"./data/{z}-{n}/"
 
@@ -42,7 +42,10 @@ first = True
 templist = []
 
 for idx, file_path in enumerate(files):
+    #if len(file_path.split("-")) == 4:
     Q = file_path.split("-")[3].strip(".g")
+    #else:
+     #   Q = -float(file_path.split("-")[4].strip(".g"))
     if f"-00{ldmodel}-{Q}" in file_path:
         with open(dir_path + file_path, "r") as f:
             f.readline()
@@ -82,10 +85,10 @@ for idx, file_path in enumerate(files):
 array = z_array
 column = column_q_sort
 num = num_non_exp_qs
+"""
 
 #print(array)
-"""
-plt.imshow(array[:,10:], norm='log', vmin=np.min(array[:,10:]), vmax=np.max(array[:,10:]), aspect='auto', origin='lower')
+plt.imshow(array[:,10:], norm="log", vmin=np.min(array[:,10:]), vmax=np.max(array[:,10:]), aspect='auto', origin='lower')
 cbar = plt.colorbar()
 print(array[:,10:])
 _cs2 = plt.contour(array[:,10:], levels = [10**(i/10) for i in range(10*int(np.floor(np.log10(np.min(array[:,10:])))), int(10*np.ceil(np.log10(np.max(array[:,10:]))))+1, 4)], origin='lower', 
@@ -96,7 +99,7 @@ plt.xticks(ticks=[i for i in range(7, 104, 10)], labels=[i/10 for i in range(10,
 #plt.xscale("log")
 plt.title(f"Reaction rate constant vs Temperature and Q-value for {z_vs_symbol[z]}-{z + n}")
 plt.xlabel(f"Temperature (GK)")
-plt.ylabel(f"Difference from standard Q-value [keV]")
+plt.ylabel(f"Difference from standard Q-value [MeV]")
 cbar.ax.set_ylabel(f"Reaction rate constant", rotation=270)
 plt.savefig('test.png')
 
