@@ -21,9 +21,9 @@ num_non_exp_qs = 21
 num_exp_qs = 21
 
 
-z_array = np.zeros((num_non_exp_qs, 108))
+z_array = np.zeros((6, num_non_exp_qs, 108))
 
-z_array_exp = np.zeros((num_exp_qs, 108))
+z_array_exp = np.zeros((6, num_exp_qs, 108))
 
 column_q_sort_exp = np.zeros(num_exp_qs)
 
@@ -45,45 +45,53 @@ for idx, file_path in enumerate(files):
     print(file_path.split("-"))
     if len(file_path.split("-")) == 4:
         Q = file_path.split("-")[3].strip(".g")
+        ldmodel = int(file_path.split("-")[2]) - 1
+        id = int(file_path.split("-")[1])
     elif len(file_path.split("-")) == 5 and "exp" not in file_path.split("-")[-1]:
         Q = -float(file_path.split("-")[4].strip(".g"))
+        ldmodel = int(file_path.split("-")[3]) - 1
+        id = int(file_path.split("-")[2])
     elif len(file_path.split("-")) == 5:
         Q = -float(file_path.split("-")[3].strip(".g"))
+        ldmodel = int(file_path.split("-")[2]) - 1
+        id = int(file_path.split("-")[1])
     else:
         Q = -float(file_path.split("-")[4].strip(".g"))
-    if f"-00{ldmodel}-{Q}" in file_path:
-        with open(dir_path + file_path, "r") as f:
-            f.readline()
-            f.readline()
-            while True:
-                line = f.readline()
-                if not line or "Q" in line:
-                    break
-                if first:
-                    templist.append(float(line.split()[0]))
-                if "exp" in file_path:
-                    if line.split()[0] == "0.0001":
-                        column_q_sort_exp[expid] = float(Q)
-                        z_array_exp[expid, 0] = float(line.split()[1])
-                        for i in range(1,108):
-                            line = f.readline()
-                            if first:
-                                templist.append(float(line.split()[0]))
-                            z_array_exp[expid, i] =  float(line.split()[1])
-                    expid += 1
-                else:
-                    print(Q, file_path)
-                    if line.split()[0] == "0.0001":
-                        column_q_sort[nonexpid] = float(Q)
-                        z_array[nonexpid, 0] = float(line.split()[1])
-                        for i in range(1,108):
-                            line = f.readline()
-                            if first:
-                                templist.append(float(line.split()[0]))
-                            z_array[nonexpid, i] =  float(line.split()[1])
-                    nonexpid += 1
+        ldmodel = int(file_path.split("-")[3]) - 1
+        id = int(file_path.split("-")[2])
+    #if f"-00{ldmodel}-{Q}" in file_path:
+    with open(dir_path + file_path, "r") as f:
+        f.readline()
+        f.readline()
+        while True:
+            line = f.readline()
+            if not line or "Q" in line:
+                break
             if first:
-                first = False
+                templist.append(float(line.split()[0]))
+            if "exp" in file_path:
+                if line.split()[0] == "0.0001":
+                    if float(Q) not in column_q_sort_exp:
+                        column_q_sort_exp[id] = float(Q)
+                    z_array_exp[ldmodel, id, 0] = float(line.split()[1])
+                    for i in range(1,108):
+                        line = f.readline()
+                        if first:
+                            templist.append(float(line.split()[0]))
+                        z_array_exp[ldmodel, id, i] =  float(line.split()[1])
+            else:
+                print(Q, file_path)
+                if line.split()[0] == "0.0001":
+                    if float(Q) not in column_q_sort:
+                        column_q_sort[id] = float(Q)
+                    z_array[ldmodel, id, 0] = float(line.split()[1])
+                    for i in range(1,108):
+                        line = f.readline()
+                        if first:
+                            templist.append(float(line.split()[0]))
+                        z_array[ldmodel, id, i] =  float(line.split()[1])
+        if first:
+            first = False
 
 
 
