@@ -69,15 +69,14 @@ def posterior(kernel_size, bias_size, dtype=None):
 
 def create_model(train_size):
     model = keras.Sequential([keras.layers.Input(shape=(2,)),
-        layers.BatchNormalization(), # check what this does?
         tfp.layers.DenseVariational(
-                units=8,
+                units=4,
                 make_prior_fn=prior,
                 make_posterior_fn=posterior,
                 kl_weight=1 / train_size,
                 activation="sigmoid",),
         tfp.layers.DenseVariational(
-                units=8,
+                units=4,
                 make_prior_fn=prior,
                 make_posterior_fn=posterior,
                 kl_weight=1 / train_size,
@@ -96,14 +95,29 @@ def negative_loglikelihood(targets, estimated_distribution):
 
 def run_fit(model, loss, QT, Z):
 
+    train_size = 108*21*6
+    batch_size = 32
+    epochs = 300
+
+    initial_learning_rate = 0.1
+    final_learning_rate = 0.00075
+    learning_rate_decay_factor = (final_learning_rate / initial_learning_rate)**(1/epochs)
+    steps_per_epoch = int(train_size/batch_size)
+
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+                initial_learning_rate=initial_learning_rate,
+                decay_steps=steps_per_epoch,
+                decay_rate=learning_rate_decay_factor,
+                staircase=True)
+
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.0005),
+        optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),
         loss=loss,
         metrics=[keras.metrics.RootMeanSquaredError()],
     )
 
     print("Start training the model...")
-    model_history = model.fit(QT, Z, epochs=1000, verbose=2)
+    model_history = model.fit(QT, Z, epochs=epochs, batch_size=batch_size, verbose=2)
     print("Model training finished.")
     _, rmse = model.evaluate(QT, Z, verbose=0)
     print(f"Train RMSE: {round(rmse, 3)}")
@@ -129,7 +143,8 @@ def run_fit(model, loss, QT, Z):
 #model.fit(dataset[0], dataset[1], epochs=400, batch_size=20, verbose=2)
 
 mae_loss = keras.losses.MeanAbsoluteError()
-bnn_model = create_model(108*21*6)
+train_size = 108*21*6
+bnn_model = create_model(train_size)
 run_fit(bnn_model, mae_loss, dataset[0], dataset[1])
 
 
@@ -175,12 +190,12 @@ def plot_2Dprediction(model, iterations=100, Q_idx=10):
     #plt.plot(tempsLin, prediction_mean + prediction_stdv)
     #plt.plot(tempsLin, prediction_mean - prediction_stdv)
 
-    plt.plot(templist, (z_array[0, Q_idx, :]), color="red", linewidth=4)
-    plt.plot(templist, (z_array[1, Q_idx, :]), color="red", linewidth=4)
-    plt.plot(templist, (z_array[2, Q_idx, :]), color="red", linewidth=4)
-    plt.plot(templist, (z_array[3, Q_idx, :]), color="red", linewidth=4)
-    plt.plot(templist, (z_array[4, Q_idx, :]), color="red", linewidth=4)
-    plt.plot(templist, (z_array[5, Q_idx, :]), color="red", linewidth=4)
+    plt.plot(templist, (z_array[0, Q_idx, :]), color="red", linewidth=1)
+    plt.plot(templist, (z_array[1, Q_idx, :]), color="red", linewidth=1)
+    plt.plot(templist, (z_array[2, Q_idx, :]), color="red", linewidth=1)
+    plt.plot(templist, (z_array[3, Q_idx, :]), color="red", linewidth=1)
+    plt.plot(templist, (z_array[4, Q_idx, :]), color="red", linewidth=1)
+    plt.plot(templist, (z_array[5, Q_idx, :]), color="red", linewidth=1)
 
 
     plt.savefig("constQ.png")
