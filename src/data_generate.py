@@ -176,7 +176,7 @@ def perform_calculation(arguments):
     os.chdir(f"calculations/calculation{calculation_idx}")
     os.system(f"{talys_path} < input > talys.out")
     os.chdir(def_path)
-    save_calculation_results(calculation_idx, n, z, f"{q_num:03d}" + "-" + f"{ld_idx:03d}" + "-" + str(round(q_value, 5)), exp)
+    save_calculation_results(calculation_idx, n, z, "|" + str(round(q_value, 5)) + "|" + f"{q_num:03d}" + "|" + f"{ld_idx:03d}" + "|", exp)
 
     clean_calculation(calculation_idx)
 
