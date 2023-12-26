@@ -81,8 +81,8 @@ def create_model(train_size):
                 make_posterior_fn=posterior,
                 kl_weight=1 / train_size,
                 activation="sigmoid",),
-        layers.Dense(units=1)])
-        #tfp.layers.IndependentNormal(1)])
+        layers.Dense(units=2),
+        tfp.layers.IndependentNormal(1)])
 
     #model = keras.Model(inputs=inputs, outputs=outputs)
 
@@ -97,7 +97,7 @@ def run_fit(model, loss, QT, Z):
 
     train_size = 108*21*6
     batch_size = 32
-    epochs = 300
+    epochs = 1200
 
     initial_learning_rate = 0.1
     final_learning_rate = 0.00075
@@ -124,8 +124,11 @@ def run_fit(model, loss, QT, Z):
 
     print(model.summary())
 
-    plt.plot((model_history.history['loss']), color='blue')
-    plt.plot((model_history.history['root_mean_squared_error']), color='orange')
+    plt.plot(np.log10(model_history.history['loss']), color='blue')
+    #plt.plot(np.log10(model_history.history['root_mean_squared_error']), color='orange')
+    plt.title("Loss as function of training epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Log10(Loss)")
     plt.savefig("NNLoss")
 
 #opt = keras.optimizers.RMSprop(learning_rate=0.01)
@@ -145,7 +148,8 @@ def run_fit(model, loss, QT, Z):
 mae_loss = keras.losses.MeanAbsoluteError()
 train_size = 108*21*6
 bnn_model = create_model(train_size)
-run_fit(bnn_model, mae_loss, dataset[0], dataset[1])
+# mae loss for standard gaussian
+run_fit(bnn_model, negative_loglikelihood, dataset[0], dataset[1])
 
 
 X = np.arange(np.min(TG), np.max(TG), 0.1)
@@ -176,27 +180,31 @@ def plot_2Dprediction(model, iterations=100, Q_idx=10):
     tempsLin = np.arange(0.0001, 10, 0.03)
     plotarray = [(column_q_sort[Q_idx], t) for t in tempsLin]
     plt.clf()
-    for _ in range(iterations):
-        plt.plot(tempsLin, (model.predict(plotarray)), color="green")
-    #prediction_distribution = model(np.array(plotarray))
-    #print(prediction_distribution)
+    #for _ in range(iterations):
+     #   plt.plot(tempsLin, (model.predict(plotarray)), color="green")
+    prediction_distribution = model(np.array(plotarray))
 
-    #print(prediction_distribution.mean(), prediction_distribution.stddev())
 
-    #prediction_mean = prediction_distribution.mean().numpy()
-    #prediction_stdv = prediction_distribution.stddev().numpy()
+    prediction_mean = prediction_distribution.mean().numpy()
+    prediction_stdv = prediction_distribution.stddev().numpy()
 
-    #plt.plot(tempsLin, prediction_mean)
-    #plt.plot(tempsLin, prediction_mean + prediction_stdv)
-    #plt.plot(tempsLin, prediction_mean - prediction_stdv)
+    plt.plot(templist, np.log10(2**(z_array[0, Q_idx, :])), color="red", linewidth=1)
+    plt.plot(templist, np.log10(2**(z_array[1, Q_idx, :])), color="red", linewidth=1)
+    plt.plot(templist, np.log10(2**(z_array[2, Q_idx, :])), color="red", linewidth=1)
+    plt.plot(templist, np.log10(2**(z_array[3, Q_idx, :])), color="red", linewidth=1)
+    plt.plot(templist, np.log10(2**(z_array[4, Q_idx, :])), color="red", linewidth=1)
+    plt.plot(templist, np.log10(2**(z_array[5, Q_idx, :])), color="red", linewidth=1, label="TALYS Data")
 
-    plt.plot(templist, (z_array[0, Q_idx, :]), color="red", linewidth=1)
-    plt.plot(templist, (z_array[1, Q_idx, :]), color="red", linewidth=1)
-    plt.plot(templist, (z_array[2, Q_idx, :]), color="red", linewidth=1)
-    plt.plot(templist, (z_array[3, Q_idx, :]), color="red", linewidth=1)
-    plt.plot(templist, (z_array[4, Q_idx, :]), color="red", linewidth=1)
-    plt.plot(templist, (z_array[5, Q_idx, :]), color="red", linewidth=1)
 
+    plt.plot(tempsLin, np.log10(2**prediction_mean), color="royalblue", label="Mean Fit, μ")
+    plt.fill_between(tempsLin, (np.log10(2**(prediction_mean + prediction_stdv))).flatten(), (np.log10(2**(prediction_mean - prediction_stdv))).flatten(), color="lightsteelblue", label="μ±σ")
+    #plt.plot(tempsLin, (prediction_mean + prediction_stdv), color="blue")
+    #plt.plot(tempsLin, (prediction_mean - prediction_stdv), color="blue")
+
+    plt.title(f"Reaction Rate vs. Temperature for n=13,z=11 and Q={column_q_sort[Q_idx]} MeV")
+    plt.xlabel("Temperature [GK]")
+    plt.ylabel("log10 Reaction rate")
+    plt.legend()
 
     plt.savefig("constQ.png")
 
