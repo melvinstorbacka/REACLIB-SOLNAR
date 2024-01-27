@@ -11,4 +11,4 @@ data/
 calculations/
 
 # nohup files
-nohup*
+nohup.out
