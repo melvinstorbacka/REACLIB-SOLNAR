@@ -107,14 +107,14 @@ plt.savefig("test3.png")
 
 tempsLin = np.arange(0.0001, 10, 0.03)
 
-plotarray = [(column_q_sort[2], t) for t in tempsLin]
+plotarray = [(column_q_sort[-2], t) for t in tempsLin]
 
 
-print(column_q_sort[2])
+print(column_q_sort[-2])
 
 ax2 = fig.add_subplot()
 
 ax2.plot(tempsLin, 2**(model.predict(plotarray)), color="green")
-ax2.plot(templist, 2**(z_array[2, :]))
+ax2.plot(templist, 2**(z_array[-2, :]))
 
 plt.savefig("constQ.png")
