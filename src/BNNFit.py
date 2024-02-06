@@ -90,6 +90,7 @@ def create_model(train_size):
 
 
 def negative_loglikelihood(targets, estimated_distribution):
+    print(estimated_distribution)
     return -estimated_distribution.log_prob(targets)
 
 

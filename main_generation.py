@@ -2,6 +2,8 @@ from src import data_generate
 from src import dz10fit1_1
 from math import floor, ceil
 
+from random import randint
+
 TALYS_PATH = '~/REACLIB-SOLNAR/talys'
 
 # path to xml file for the baseline masses to be used
@@ -29,12 +31,20 @@ dz10_standard_params = [17.74799982094152, 16.25161355526155, 0.705100090804503,
 
 nuclei_lst = []
 
-for z in range(8, 118):
-    for n in range(floor(z/3), ceil(3*z)):
-        # TODO: add list of all bound nuclei correctly
-        print(dz10fit1_1.DZ10(n, z, dz10_standard_params))
-        nuclei_lst.append([n, z])
+# estimate number of bound nuclei with 2 ≤ Z ≤ 120. TODO: add padding of additional nuclei
 
-print(len(nuclei_lst))
+for z in range(2, 121):
+    for n in range(2, 4*z):
+        if dz10fit1_1.DZ10(n, z, dz10_standard_params) - dz10fit1_1.DZ10(n-1, z, dz10_standard_params) >= 0 and dz10fit1_1.DZ10(n, z, dz10_standard_params) - dz10fit1_1.DZ10(n, z-1, dz10_standard_params) >= 0:
+            nuclei_lst.append([n, z])
 
-#data_generate.execute(nuclei_lst, TALYS_PATH, AME_PATH, NUM_QS, NUM_QS_EXP, Q_STEP, data_generate.DZ10_masses, dz10_standard_params)
+
+comp_nuclei_lst = []
+
+for i in range(0, 100):
+    idx = randint(0, len(nuclei_lst))
+    comp_nuclei_lst.append(nuclei_lst[idx])
+
+print(comp_nuclei_lst)
+
+data_generate.execute(comp_nuclei_lst, TALYS_PATH, AME_PATH, NUM_QS, NUM_QS_EXP, Q_STEP, data_generate.DZ10_masses, dz10_standard_params)

@@ -128,8 +128,8 @@ def baseline_mass_excess(nzme_array, ns, zs):
         for idx, nzme in enumerate(np.vsplit(nzme_array, len(nzme_array))):
             if int(nzme[0][0]) == n and int(nzme[0][1]) == z:
                 if int(nzme_array[idx + 1][0]) == n+1 and int(nzme_array[idx+1][1]) == z:
-                    # TODO: check, is there a better estimate than the "max" of the uncertainties?
-                    be_out_array[i] = np.array((nzme[0][2], nzme_array[idx+1][2], max(nzme[0][3], nzme_array[idx+1][3])))
+                    # The total uncertainty is here assumed to be the maximal absolute uncertainty (i.e. sum of uncertainties)
+                    be_out_array[i] = np.array((nzme[0][2], nzme_array[idx+1][2], (nzme[0][3] + nzme_array[idx+1][3])))
                 else:
                     be_out_array[i] = None  # if we do not have data for the product, do not calculate
     return be_out_array
@@ -176,7 +176,7 @@ def perform_calculation(arguments):
     os.chdir(f"calculations/calculation{calculation_idx}")
     os.system(f"{talys_path} < input > talys.out")
     os.chdir(def_path)
-    save_calculation_results(calculation_idx, n, z, "|" + str(round(q_value, 5)) + "|" + f"{q_num:03d}" + "|" + f"{ld_idx:03d}" + "|", exp)
+    save_calculation_results(calculation_idx, n, z, "|" + str(round(q_value, 5)) + "|" + f"{ld_idx:03d}" + "|", exp)
 
     clean_calculation(calculation_idx)
 
@@ -195,10 +195,10 @@ def save_calculation_results(calculation_idx, n, z, name, exp=False):
     try:
         if not exp:
             shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
-                   f"data/{z}-{n}/astrorate-{name}.g")
+                   f"data/{z}-{n}/rate{name}.g")
         else:
             shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
-                   f"data/{z}-{n}/astrorate-{name}-exp.g")
+                   f"data/{z}-{n}/rate{name}-exp.g")
     except FileNotFoundError:
         logging.error("Could not copy 'astrorate.g' from calculations/calculation%s/" +
                       "Does it exist? Terminating...", str(calculation_idx))
@@ -213,10 +213,10 @@ def save_calculation_results(calculation_idx, n, z, name, exp=False):
                     QVal = line
                     break
         if not exp:
-            with open(f"data/{z}-{n}/astrorate-{name}.g", "a") as f:
+            with open(f"data/{z}-{n}/rate{name}.g", "a") as f:
                 f.write(QVal)
         else:
-            with open(f"data/{z}-{n}/astrorate-{name}-exp.g", "a") as f:
+            with open(f"data/{z}-{n}/rate{name}-exp.g", "a") as f:
                 f.write(QVal)
     except FileNotFoundError:
         logging.error("Could not copy 'talys.out' from calculations/calculation%s/" +
@@ -346,6 +346,4 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, num_qs_exp, q_step, mass_
     pool.join()
 
 if __name__ == "__main__":
-    a = DZ10_masses("input_data/ame20.txt", dz10_standard_params, [[100, 50]])
-    print(baseline_mass_excess(a, [101], [50]))
     print("File should be imported, then run 'execute()' with the proper arguments.")

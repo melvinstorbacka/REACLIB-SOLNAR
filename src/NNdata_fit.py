@@ -9,6 +9,7 @@ from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
 import tensorflow_probability as tfp
+from data_read import read
 
 
 mae_loss = keras.losses.MeanAbsoluteError()
@@ -29,18 +30,22 @@ def reaclib_exp(t9, a0, a1, a2, a3, a4, a5, a6):
 def read_data(n, z):
     """Reads the data from ./data/{n}-{z}/, and outputs a (Q, T)-array and Rate list, as fit dataset.
     n       : neutron number
-    z       : proton number"""
+    z       : proton number
+    
+    Output:
+    QT_points   : List of points in format (Q, Temperature)
+    rate_points : List of rate points corresponding to the (Q, T) values in QT_points.
+                  Note that the format is (Q_1, T_1), (Q_1, T_2), ..., (Q_1, T_108), (Q_2, T_1)...
+    qlist       : List of the Q-values
+    templist    : List of the temperatures"""
 
     dir_path = f"./data/{z}-{n}/"
     files = os.listdir(dir_path)
     files.sort()
 
-    QT_points = [[] for i in range(1, 7)]
-    rate_points = [[] for i in range(1, 7)]
-    templist = [[] for i in range(1, 7)]
-    qlist = [[] for i in range(1, 7)]
-
     non_exp_files = []
+
+    # TODO: add checking if central is double - remove one of them
 
     for file_path in files:
         if "exp" not in file_path:
@@ -48,59 +53,15 @@ def read_data(n, z):
 
     files = non_exp_files
 
-    for file_path in files:
-        Q, idx, ld_idx = float(file_path.split("|")[1]), int(file_path.split("|")[2]), int(file_path.split("|")[3])
-        with open(dir_path + file_path, "r") as f:
-            f.readline()
-            f.readline()
-            line = f.readline()
-            line = line.split(" ")
-            if len(line) == 5:
-                    temperature, rate = float(line[2]), float(line[3])
-            else:
-                temperature, rate = float(line[1]), float(line[2])
-            QT_points[ld_idx-1].append((Q, temperature))
-            if temperature not in templist[ld_idx - 1]:
-                templist[ld_idx-1].append(temperature)
-            ind = templist[ld_idx - 1].index(temperature)
-            qlist[ld_idx - 1].append(Q)
-            if rate != 0:
-                rate = np.log2(rate)
-            else:
-                rate = np.log2(1e-30)
-            rate_points[ld_idx-1].append(rate)
-            while True:
-                line = f.readline()
-                if not line or "Q" in line:
-                    break
-                line = line.split(" ")
-                if len(line) == 5:
-                    temperature, rate = float(line[2]), float(line[3])
-                else:
-                    temperature, rate = float(line[1]), float(line[2])
-                if temperature not in templist[ld_idx - 1]:
-                    templist[ld_idx-1].append(temperature)
-                if rate != 0:
-                    rate = np.log2(rate)
-                else:
-                    rate = np.log2(1e-30)
-                rate_points[ld_idx-1].append(rate)
-                ind = templist[ld_idx - 1].index(temperature)
-                QT_points[ld_idx-1].append((Q, temperature))
+    QT_points, rate_points, qlist, templist = read(files, dir_path)
 
-    print(np.array(rate_points).shape)
-    print(np.array(QT_points).shape)
-    #print(len(rate_points[0]))
-    #print(templist)
-    #print(qlist)
-        
-
-    # these arrays need to be flattened or select one of the dimensions (different LD models)
-    return np.array(QT_points), np.array(rate_points), qlist[1], templist[1]
+    return QT_points, rate_points, qlist, templist
+    
 
 
 
 def prior(kernel_size, bias_size, dtype=None):
+    """Provides a prior distribution for the Bayesian Neural Network"""
     n = kernel_size + bias_size
     prior_model = keras.Sequential([tfp.layers.DistributionLambda(
         lambda t: tfp.distributions.MultivariateNormalDiag(
@@ -110,6 +71,7 @@ def prior(kernel_size, bias_size, dtype=None):
     return prior_model
 
 def posterior(kernel_size, bias_size, dtype=None):
+    """Provides a posterior distribution for the Bayesian Neural Network"""
     n = kernel_size + bias_size
     posterior_model = keras.Sequential([tfp.layers.VariableLayer(
         tfp.layers.MultivariateNormalTriL.params_size(n), dtype=dtype),
@@ -118,16 +80,16 @@ def posterior(kernel_size, bias_size, dtype=None):
 
 
 def create_probabilistic_bnn_model(train_size):
-
+    """"Creates a probabilistic Bayesian Neural Network"""
     model = keras.Sequential([keras.layers.Input(shape=(2,)),
         tfp.layers.DenseVariational(
-                units=4,
+                units=32,
                 make_prior_fn=prior,
                 make_posterior_fn=posterior,
                 kl_weight=1 / train_size,
                 activation="sigmoid",),
         tfp.layers.DenseVariational(
-                units=4,
+                units=32,
                 make_prior_fn=prior,
                 make_posterior_fn=posterior,
                 kl_weight=1 / train_size,
@@ -139,27 +101,28 @@ def create_probabilistic_bnn_model(train_size):
 
 
 def create_bnn_model(train_size):
-
+    """Creates a standard Bayesian Neural Network (i.e. random outputs within uncertainty)"""
     model = keras.Sequential([keras.layers.Input(shape=(2,)),
         tfp.layers.DenseVariational(
-                units=4,
+                units=8,
                 make_prior_fn=prior,
                 make_posterior_fn=posterior,
                 kl_weight=1 / train_size,
                 activation="sigmoid",),
         tfp.layers.DenseVariational(
-                units=4,
+                units=8,
                 make_prior_fn=prior,
                 make_posterior_fn=posterior,
                 kl_weight=1 / train_size,
                 activation="sigmoid",),
-        layers.Dense(units=1)])
+        layers.Dense(units=2),
+        tfp.layers.IndependentNormal(1)])
 
     return model
 
 
 def create_standard_nn_model():
-
+    """Creates a standard Neural Network for fitting the rates with high accuracy."""
     model = keras.Sequential([keras.layers.Input(shape=(2,)),
         layers.Dense(
                 units=32,
@@ -183,17 +146,15 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idx=N
     loss        : loss function to be used
     QT_array    : array of (Q, T) points of rates
     rate_array  : array of rates for (Q, T) points
-    train_size  : number of data points
+    train_size  : number of data points with 6 LD models
     batch_size  : batch size"""
     
     if ld_idx is not None:
-        train_size = 108*21
-    else:
-        train_size = 108*21*6
-    batch_size = 2*108
-    epochs = 7500
+        train_size = train_size/6
+    batch_size = 2*108  # (times two for standard NN at least)
+    epochs = 7500       # 7500 for standard NN fit
 
-    initial_learning_rate = 0.025
+    initial_learning_rate = 0.025   # 0.025 good learning rate for standard NN
     final_learning_rate = 0.00010
     learning_rate_decay_factor = (final_learning_rate / initial_learning_rate)**(1/epochs)
     steps_per_epoch = int(train_size/batch_size)
@@ -213,39 +174,39 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idx=N
     )
 
     print("Start training the model...")
-    print(rate_array.shape)
     if ld_idx:
         Z_train = rate_array[ld_idx, :]
         QT_train = QT_array[ld_idx, :, :]
     else:
-        Z_train = rate_array
-        QT_train = QT_array
+        Z_train = rate_array.flatten()
+        QT_train = QT_array.reshape(-1, QT_array.shape[-1])
+
 
     model_history = model.fit(QT_train, Z_train, epochs=epochs, batch_size=batch_size, verbose=2)
     print("Model training finished.")
     _, rmse = model.evaluate(QT_train, Z_train, verbose=0)
     print(f"Train RMSE: {round(rmse, 3)}")
 
-    print(model.summary())
-
     return model_history
 
 
-def plot_probabilistic_bnn(model, n, z, Q=None, q_idx=None, rate_data=None, templist=None):
+def plot_probabilistic_bnn(model, n, z, q_idxplusone=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
+    
+    q_idx = q_idxplusone - 1
+    Q = qlist[q_idx]
 
-    if q_idx and rate_data is not None and templist is not None:
-        plt.plot(templist, np.log10(2**(rate_data[0, q_idx, :])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[0, q_idx, :])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[0, q_idx, :])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[0, q_idx, :])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[0, q_idx, :])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[0, q_idx, :])), color="red", linewidth=1, label="TALYS Data")
+    if q_idxplusone and rate_data is not None and templist is not None:
+        plt.plot(templist, np.log10(2**(rate_data[0, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(2**(rate_data[1, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(2**(rate_data[2, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(2**(rate_data[3, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(2**(rate_data[4, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(2**(rate_data[5, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
 
     if Q:
         tempsLin = np.arange(0.0001, 10, 0.03)
         plotarray = [(Q, t) for t in tempsLin]
-        #for _ in range(iterations):
-        #   plt.plot(tempsLin, (model.predict(plotarray)), color="green")
+
         prediction_distribution = model(np.array(plotarray))
         prediction_mean = prediction_distribution.mean().numpy()
         prediction_stdv = prediction_distribution.stddev().numpy()
@@ -257,26 +218,32 @@ def plot_probabilistic_bnn(model, n, z, Q=None, q_idx=None, rate_data=None, temp
     plt.xlabel("Temperature [GK]")
     plt.ylabel("log10 Reaction rate")
     plt.legend()
-    plt.savefig("constQ.png")
+    plt.savefig(name)
     plt.clf()
 
 
-def plot_bnn(model, n, z, iterations=100, ld_idx=None, Q=None, q_idx=None, rate_data=None, templist=None):
+def plot_bnn(model, n, z, iterations=100, q_idxplusone=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
 
-    if ld_idx and q_idx and rate_data is not None and templist is not None:
-        plt.plot(templist, np.log10(2**(rate_data[ld_idx, q_idx, :])), color="red", linewidth=1, label="TALYS Data")
+    q_idx = q_idxplusone - 1
 
-    if Q:
+    if  q_idxplusone and rate_data is not None and templist is not None:
+        plt.scatter(templist, np.log10(2**(rate_data[0, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
+        for ld_idx in range(1, 6): 
+            plt.scatter(templist, np.log10(2**(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+
+    if qlist:
+        Q = qlist[q_idx]
         tempsLin = np.arange(0.0001, 10, 0.03)
         plotarray = [(Q, t) for t in tempsLin]
-        for _ in range(iterations):
-           plt.plot(tempsLin, (model.predict(plotarray)), color="lightsteelblue", label="BNN Predictions")
+        plt.plot(tempsLin, np.log10(2**(model.predict(plotarray))), color="lightsteelblue", label="BNN Predictions")
+        for _ in range(iterations - 1):
+           plt.plot(tempsLin, np.log10(2**(model.predict(plotarray))), color="lightsteelblue")
 
     plt.title(f"Reaction Rate vs. Temperature for {n=},{z=} and Q={Q} MeV")
     plt.xlabel("Temperature [GK]")
     plt.ylabel("log10 Reaction rate")
     plt.legend()
-    plt.savefig("constQ.png")
+    plt.savefig(name)
     plt.clf()
 
 
@@ -303,11 +270,6 @@ def plot3d_standard_nn(model, n, z, ld_idx=None, Q=None, num_q=None, q_step=None
 
     q_fine_grid = np.arange(Q - np.floor(num_q/2 - 1)*q_step, Q + np.ceil(num_q/2)*q_step, 0.1)
     temp_fine_grid = np.arange(0.001, 10, 0.1)
-
-    print(q_fine_grid)
-
-    #for t in temp_fine_grid:
-        #for q in q_fine_grid:
     
     plotarray = [(q, t) for t in temp_fine_grid for q in q_fine_grid]
 
@@ -317,7 +279,7 @@ def plot3d_standard_nn(model, n, z, ld_idx=None, Q=None, num_q=None, q_step=None
 
     if ld_idx and rate_data is not None and q_list is not None and templist is not None:
         QG, TG = np.meshgrid(np.array(q_list), np.array(templist))
-        Z_plot = np.reshape(rate_data[ld_idx, :], (len(q_list), len(templist)))#rate_data[ld_idx, :].ravel()
+        Z_plot = np.reshape(rate_data[ld_idx, :], (len(q_list), len(templist)))
 
         ax.plot_surface(TG, QG, np.log10(2**(Z_plot.transpose())), cmap='plasma', alpha=0.8, label="TALYS Data")
         ax.set_zlim(0,np.log10(2**(np.max(rate_data))))
@@ -369,7 +331,18 @@ def load_standard_nn(model):
 
 
 def reaclib_fit(model):
+    """Fit the mean NN model values to the Reaclib format, for a specific slice of Q-value."""
     pass
+
+
+def reaclib_output_rate(model, file_path):
+    """Append reaclib fit constants to file in file_path."""
+    pass
+
+
+def reaclib_total_output(model, file_path, list_of_nuclei, list_of_masses):
+    """Outputs the total reaclib fit file for all nuclei in the list
+    TODO: warning if nuclei are missing"""
 
 def plot_loss(model_history):
     plt.plot(np.log10(model_history.history['loss']), color='blue', label="Loss")
@@ -388,15 +361,11 @@ def main():
 
 mae_loss = keras.losses.MeanAbsoluteError()
 train_size = 108*21*6
-bnn_model = create_standard_nn_model()
+bnn_model = create_probabilistic_bnn_model(train_size)
 
 data = read_data(123, 82)
 
-print(len(data[2]), len(data[3]))
-
-print(data[2])
-
-history = fit_data(bnn_model, keras.losses.MeanAbsoluteError(), data[0], data[1], train_size, 32, ld_idx=1)
+history = fit_data(bnn_model, negative_loglikelihood, data[0], data[1], train_size, 32)
 
 plot_loss(history)
 
@@ -404,6 +373,10 @@ for i in range(0, 20):
     qlist = data[2].copy()
     qlist.sort()
     j = data[2].index(qlist[i])
-    plot_standard_nn(bnn_model, 123, 82, 1, j, data[1], data[3], data[2], f"plots/plot{i}.png")
+    plot_probabilistic_bnn(bnn_model, 123, 82, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
 
-plot3d_standard_nn(bnn_model, 123, 82, 1, 8.08666, 21, 0.5, data[2], data[1], data[3])
+#
+#    model, n, z, iterations=100, ld_idx=None, q_idx=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
+#
+
+#plot3d_standard_nn(bnn_model, 123, 82, 1, 8.08666, 21, 0.5, data[2], data[1], data[3])
