@@ -361,19 +361,21 @@ def main():
 
 mae_loss = keras.losses.MeanAbsoluteError()
 train_size = 108*21*6
-bnn_model = create_probabilistic_bnn_model(train_size)
+bnn_model = create_standard_nn_model()
 
-data = read_data(123, 82)
+print(bnn_model.summary())
 
-history = fit_data(bnn_model, negative_loglikelihood, data[0], data[1], train_size, 32)
+#data = read_data(123, 82)
 
-plot_loss(history)
+#history = fit_data(bnn_model, negative_loglikelihood, data[0], data[1], train_size, 32)
 
-for i in range(0, 20):
-    qlist = data[2].copy()
-    qlist.sort()
-    j = data[2].index(qlist[i])
-    plot_probabilistic_bnn(bnn_model, 123, 82, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
+#plot_loss(history)
+
+#for i in range(0, 20):
+   # qlist = data[2].copy()
+   # qlist.sort()
+  #  j = data[2].index(qlist[i])
+ #   plot_probabilistic_bnn(bnn_model, 123, 82, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
 
 #
 #    model, n, z, iterations=100, ld_idx=None, q_idx=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):

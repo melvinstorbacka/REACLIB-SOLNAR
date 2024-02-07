@@ -7,8 +7,10 @@ talys*
 astrorate*
 
 # SONAR file structure
-data/
 calculations/
 
 # nohup files
 nohup.out
+
+# plots
+*.png
