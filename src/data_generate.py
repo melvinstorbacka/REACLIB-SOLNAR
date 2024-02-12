@@ -165,6 +165,9 @@ def perform_calculation(arguments):
 
     calculation_idx = os.getpid()
 
+    if os.path.exists(f"data/{z}-{n}/rate{"|" + str(round(q_value, 5)) + "|" + f"{ld_idx:03d}" + "|"}.g"):
+        return
+
     init_calculation(calculation_idx)
  
     # confirmed to give a +/- (num_qs - 1)/2 even spread
