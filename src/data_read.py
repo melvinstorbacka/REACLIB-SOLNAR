@@ -9,16 +9,13 @@ def read(files, dir_path):
     qlist = [[] for i in range(1, 7)]
 
     for file_path in files:
-        Q, idx, ld_idx = float(file_path.split("|")[1]), int(file_path.split("|")[2]), int(file_path.split("|")[3])
+        Q, ld_idx = float(file_path.split("|")[1]), int(file_path.split("|")[2])
         with open(dir_path + file_path, "r") as f:
-            f.readline()
-            f.readline()
+            for _ in range(20):
+                f.readline()
             line = f.readline()
             line = line.split(" ")
-            if len(line) == 5:
-                    temperature, rate = float(line[2]), float(line[3])
-            else:
-                temperature, rate = float(line[1]), float(line[2])
+            temperature, rate = float(line[3]), float(line[6])
             QT_points[ld_idx-1].append((Q, temperature))
             if temperature not in templist[ld_idx - 1]:
                 templist[ld_idx-1].append(temperature)
@@ -34,10 +31,7 @@ def read(files, dir_path):
                 if not line or "Q" in line:
                     break
                 line = line.split(" ")
-                if len(line) == 5:
-                    temperature, rate = float(line[2]), float(line[3])
-                else:
-                    temperature, rate = float(line[1]), float(line[2])
+                temperature, rate = float(line[3]), float(line[6])
                 if temperature not in templist[ld_idx - 1]:
                     templist[ld_idx-1].append(temperature)
                 if rate != 0:

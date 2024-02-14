@@ -27,7 +27,7 @@ def reaclib_exp(t9, a0, a1, a2, a3, a4, a5, a6):
     return s
 
 
-def read_data(n, z):
+def read_data(z, n):
     """Reads the data from ./data/{n}-{z}/, and outputs a (Q, T)-array and Rate list, as fit dataset.
     n       : neutron number
     z       : proton number
@@ -44,7 +44,7 @@ def read_data(n, z):
     files.sort()
 
     non_exp_files = []
-
+    
     # TODO: add checking if central is double - remove one of them
 
     for file_path in files:
@@ -125,10 +125,10 @@ def create_standard_nn_model():
     """Creates a standard Neural Network for fitting the rates with high accuracy."""
     model = keras.Sequential([keras.layers.Input(shape=(2,)),
         layers.Dense(
-                units=32,
+                units=32, # 32
                 activation="sigmoid"),
         layers.Dense(
-                units=32,
+                units=32, # 32
                 activation="sigmoid"),
         layers.Dense(units=1)])
 
@@ -140,16 +140,19 @@ def negative_loglikelihood(targets, estimated_distribution):
     return -estimated_distribution.log_prob(targets)
 
 
-def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idx=None):
+def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1=None):
     """Fits the NN model to the rate surface provided.
     model       : NN model to be used for the fit
     loss        : loss function to be used
     QT_array    : array of (Q, T) points of rates
     rate_array  : array of rates for (Q, T) points
     train_size  : number of data points with 6 LD models
-    batch_size  : batch size"""
+    batch_size  : batch size
+    ld_idxp1    : level density model number +1 (corresponding to correct numbers in TALYS manual)"""
     
-    if ld_idx is not None:
+
+    if ld_idxp1 is not None:
+        ld_idx = ld_idxp1 - 1
         train_size = train_size/6
     batch_size = 2*108  # (times two for standard NN at least)
     epochs = 7500       # 7500 for standard NN fit
@@ -174,7 +177,7 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idx=N
     )
 
     print("Start training the model...")
-    if ld_idx:
+    if ld_idxp1:
         Z_train = rate_array[ld_idx, :]
         QT_train = QT_array[ld_idx, :, :]
     else:
@@ -247,7 +250,11 @@ def plot_bnn(model, n, z, iterations=100, q_idxplusone=None, rate_data=None, tem
     plt.clf()
 
 
-def plot_standard_nn(model, n, z, ld_idx=None, q_idx=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
+def plot_standard_nn(model, n, z, ld_idx=None, q_idxplusone=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
+
+    q_idx = q_idxplusone - 1
+    print((rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)]))
+    print(rate_data.shape)
 
     plt.scatter(templist, np.log10(2**(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
 
@@ -265,7 +272,7 @@ def plot_standard_nn(model, n, z, ld_idx=None, q_idx=None, rate_data=None, templ
     plt.clf()
 
 
-def plot3d_standard_nn(model, n, z, ld_idx=None, Q=None, num_q=None, q_step=None, q_list=None, rate_data=None, templist=None):
+def plot3d_standard_nn(model, n, z, ld_idx=None, Q=None, num_q=None, q_step=None, q_list=None, rate_data=None, templist=None, name="3DPlot.png"):
     
 
     q_fine_grid = np.arange(Q - np.floor(num_q/2 - 1)*q_step, Q + np.ceil(num_q/2)*q_step, 0.1)
@@ -277,12 +284,12 @@ def plot3d_standard_nn(model, n, z, ld_idx=None, Q=None, num_q=None, q_step=None
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    if ld_idx and rate_data is not None and q_list is not None and templist is not None:
-        QG, TG = np.meshgrid(np.array(q_list), np.array(templist))
-        Z_plot = np.reshape(rate_data[ld_idx, :], (len(q_list), len(templist)))
+    #if ld_idx and rate_data is not None and q_list is not None and templist is not None:
+    QG, TG = np.meshgrid(np.array(q_list), np.array(templist))
+    Z_plot = np.reshape(rate_data[ld_idx, :], (len(q_list), len(templist)))
 
-        ax.plot_surface(TG, QG, np.log10(2**(Z_plot.transpose())), cmap='plasma', alpha=0.8, label="TALYS Data")
-        ax.set_zlim(0,np.log10(2**(np.max(rate_data))))
+    ax.plot_surface(TG, QG, np.log10(2**(Z_plot.transpose())), cmap='plasma', alpha=0.8, label="TALYS Data")
+    ax.set_zlim(0,np.log10(2**(np.max(rate_data))))
 
 
     plt.title(f"Reaction Rate vs. Temperature vs. Q-value for {n=},{z=}")
@@ -298,36 +305,70 @@ def plot3d_standard_nn(model, n, z, ld_idx=None, Q=None, num_q=None, q_step=None
 
     plot_list = np.reshape(plot_list, TGF.shape)
 
-    ax.plot_surface(TGF, QGF, plot_list.transpose(), color="blue", alpha=0.5, label="NN Fit")
+    ax.plot_surface(TGF, QGF, plot_list, color="blue", alpha=0.5, label="NN Fit")
 
-    #plt.plot(column_q_sort, plot)
-    #plt.plot(column_q_sort, z_array[:, idx])
-    #plt.yscale("log")
-    plt.savefig("test4.png")
+    plt.savefig(name)
     plt.clf()
 
+
 def save_probabilistic_bnn(model):
+    """Used to save parameters for a probabilistic network. Will be implemented later, 
+    when appropiate use case has been found. // 2024-02-07"""
     pass
 
 
 def save_bnn(model):
+    """Used to save parameters for a BNN. Will be implemented later, 
+    when appropiate use case has been found. // 2024-02-07"""
     pass
 
 
-def save_standard_nn(model):
-    pass
+def save_standard_nn(model, n, z, ld_idx, experimental=False):
+    """Used to save parameters of standard NN fit. Saves the model in as
+    /NNParameters/{z}-{n}/ld_idx.h5
+    model   :: fit standard NN model
+    n       :: neutron number
+    z       :: proton number
+    ld_idx  :: level density model number in TALYS"""
+
+    # TODO: add separate structure for experimental nuclei
+
+    if not os.path.exists("NNParameters/"):
+        os.mkdir("NNParameters/")
+
+    if not os.path.exists(f"NNParameters/{z}-{n}"):
+        os.mkdir(f"NNParameters/{z}-{n}")
+
+    model.save(f"NNParameters/{z}-{n}/{ld_idx}.keras")
+
+    return None
 
 
 def load_probabilistic_bnn(model):
+    """Used to load parameters for a probabilistic network. Will be implemented later, 
+    when appropiate use case has been found. // 2024-02-07"""
     pass
 
 
 def load_bnn(model):
+    """Used to save parameters for a BNN. Will be implemented later, 
+    when appropiate use case has been found. // 2024-02-07"""
     pass
 
 
-def load_standard_nn(model):
-    pass
+def load_standard_nn(n, z, ld_idx):
+    """Used to load parameters of standard NN fit. Loads the model in
+    /NNParameters/{z}-{n}/ld_idx/{Q}.json. Returns the NN model loaded in Keras.
+    n       :: neutron number
+    z       :: proton number
+    ld_idx  :: level density model number in TALYS
+    Q       :: Q-value in MeV"""
+    
+    # add different treatment for experimental fit
+
+    model = keras.models.load_model(f'NNParameters/{z}-{n}/{ld_idx}.keras')
+
+    return model
 
 
 def reaclib_fit(model):
@@ -363,22 +404,28 @@ mae_loss = keras.losses.MeanAbsoluteError()
 train_size = 108*21*6
 bnn_model = create_standard_nn_model()
 
-print(bnn_model.summary())
+data = read_data(56, 79)        # 56, 79 seems problematic
+print([(a) for a in data])
 
-#data = read_data(123, 82)
+ld_idx = 0
+ld_idxp1 = 1 + ld_idx
 
-#history = fit_data(bnn_model, negative_loglikelihood, data[0], data[1], train_size, 32)
+history = fit_data(bnn_model, mae_loss, data[0], data[1], train_size, 32, ld_idxp1=1)
 
-#plot_loss(history)
+save_standard_nn(bnn_model, 79, 56, ld_idx)
 
-#for i in range(0, 20):
-   # qlist = data[2].copy()
-   # qlist.sort()
-  #  j = data[2].index(qlist[i])
- #   plot_probabilistic_bnn(bnn_model, 123, 82, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
+plot_loss(history)
+
+bnn_model = load_standard_nn(79, 56, 0)
+
+for i in range(0, 20):
+    qlist = data[2].copy()
+    qlist.sort()
+    j = data[2].index(qlist[i])
+    plot_standard_nn(bnn_model, 79, 56, ld_idx=ld_idx, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
 
 #
 #    model, n, z, iterations=100, ld_idx=None, q_idx=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
 #
 
-#plot3d_standard_nn(bnn_model, 123, 82, 1, 8.08666, 21, 0.5, data[2], data[1], data[3])
+#plot3d_standard_nn(bnn_model, 79, 56, 1, data[2][10], 10, 0.5, data[2], data[1], data[3])

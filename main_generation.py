@@ -1,6 +1,7 @@
 from src import data_generate
 from src import dz10fit1_1
 from math import floor, ceil
+import os
 
 from random import randint
 
@@ -44,6 +45,14 @@ comp_nuclei_lst = []
 for i in range(0, 100):
     idx = randint(0, len(nuclei_lst))
     comp_nuclei_lst.append(nuclei_lst[idx])
+
+#print(comp_nuclei_lst)
+
+comp_nuclei_lst = []
+
+for nucdir in os.listdir("data/"):
+    z, n = nucdir.split("-")
+    comp_nuclei_lst.append([int(n), int(z)])
 
 print(comp_nuclei_lst)
 

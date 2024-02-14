@@ -164,16 +164,27 @@ def perform_calculation(arguments):
     n, z, baseline_mes, q_step, num_qs, talys_path, q_num, ld_idx, exp = arguments
 
     calculation_idx = os.getpid()
-
-    if os.path.exists(f"data/{z}-{n}/rate{"|" + str(round(q_value, 5)) + "|" + f"{ld_idx:03d}" + "|"}.g"):
-        return
-
-    init_calculation(calculation_idx)
  
     # confirmed to give a +/- (num_qs - 1)/2 even spread
     current_me = (baseline_mes[0] + (q_step)*(q_num - (num_qs - 1)/2), baseline_mes[1])
     # test what the Q-value "should" be
     q_value = (current_me[0] + MENEUTRON) - current_me[1]
+
+
+    name = "|" + str(round(q_value, 5)) + "|" + f"{ld_idx:03d}" + "|"
+
+    if exp:
+        if os.path.exists(f"data/{z}-{n}/rate{name}-exp.g"):
+            logging.warning(f"Skipping data/{z}-{n}/rate{name}-exp.g, already found!")
+            return
+    else:
+        if os.path.exists(f"data/{z}-{n}/rate{name}.g"):
+            logging.warning("Skipping" +  f"data/{z}-{n}/rate{name}.g, already found!")
+            return
+
+    init_calculation(calculation_idx)
+
+
     prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
     def_path = os.path.abspath(os.getcwd())
     os.chdir(f"calculations/calculation{calculation_idx}")

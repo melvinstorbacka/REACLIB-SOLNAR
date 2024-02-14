@@ -10,7 +10,7 @@ astrorate*
 calculations/
 
 # nohup files
-nohup.out
+nohup*
 
 # plots
 *.png
