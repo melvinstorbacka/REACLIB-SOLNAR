@@ -164,6 +164,8 @@ def perform_calculation(arguments):
     n, z, baseline_mes, q_step, num_qs, talys_path, q_num, ld_idx, exp = arguments
 
     calculation_idx = os.getpid()
+
+    print("Starting" + str(arguments), flush=True)
  
     # confirmed to give a +/- (num_qs - 1)/2 even spread
     current_me = (baseline_mes[0] + (q_step)*(q_num - (num_qs - 1)/2), baseline_mes[1])
@@ -173,26 +175,39 @@ def perform_calculation(arguments):
 
     name = "|" + str(round(q_value, 5)) + "|" + f"{ld_idx:03d}" + "|"
 
+    print("Checking existence of previous calculations.", flush=True)
+
     if exp:
         if os.path.exists(f"data/{z}-{n}/rate{name}-exp.g"):
             logging.warning(f"Skipping data/{z}-{n}/rate{name}-exp.g, already found!")
             return
     else:
         if os.path.exists(f"data/{z}-{n}/rate{name}.g"):
-            logging.warning("Skipping" +  f"data/{z}-{n}/rate{name}.g, already found!")
+            logging.warning("Skipping " +  f"data/{z}-{n}/rate{name}.g, already found!")
             return
+        
+
+    print("Initiating.", flush=True)
 
     init_calculation(calculation_idx)
 
+    print("Preparing.", flush=True)
 
     prepare_input(calculation_idx, n, z, current_me, ld_idx, talys_path)
     def_path = os.path.abspath(os.getcwd())
     os.chdir(f"calculations/calculation{calculation_idx}")
     os.system(f"{talys_path} < input > talys.out")
     os.chdir(def_path)
+
+    print("Done! Saving.", flush=True)
+
     save_calculation_results(calculation_idx, n, z, "|" + str(round(q_value, 5)) + "|" + f"{ld_idx:03d}" + "|", exp)
 
+    print("Cleaning!", flush=True)
+
     clean_calculation(calculation_idx)
+
+    print("Returning!", flush=True)
 
     return
 

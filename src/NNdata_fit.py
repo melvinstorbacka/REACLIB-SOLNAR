@@ -1,11 +1,13 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import scipy.optimize as op
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import layers
+import multiprocessing
 from tensorflow import keras
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -15,19 +17,7 @@ from data_read import read
 mae_loss = keras.losses.MeanAbsoluteError()
 
 
-def reaclib_exp(t9, a0, a1, a2, a3, a4, a5, a6):
-    """Rate format of REACLIB library.
-    t9          : Temperature in Gigakelvin
-    a0,...,a6   : Parameters of REACLIB function"""
-    params = [a0, a1, a2, a3, a4, a5, a6]
-    s = params[0]
-    for i in range(1, 6):
-        s += params[i]*t9**((2*i-5)/3)
-    s += params[6]*np.log(t9)
-    return s
-
-
-def read_data(z, n):
+def read_data(n, z):
     """Reads the data from ./data/{n}-{z}/, and outputs a (Q, T)-array and Rate list, as fit dataset.
     n       : neutron number
     z       : proton number
@@ -53,9 +43,9 @@ def read_data(z, n):
 
     files = non_exp_files
 
-    QT_points, rate_points, qlist, templist = read(files, dir_path)
+    QT_points, rate_points, qlist, templist, errorlist = read(files, dir_path)
 
-    return QT_points, rate_points, qlist, templist
+    return QT_points, rate_points, qlist, templist, errorlist
     
 
 
@@ -178,6 +168,9 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
 
     print("Start training the model...")
     if ld_idxp1:
+        if len(rate_array[ld_idx]) != 108*21:
+            print("Incorrect dimensions, returning.", flush=True)
+            return
         Z_train = rate_array[ld_idx, :]
         QT_train = QT_array[ld_idx, :, :]
     else:
@@ -185,12 +178,12 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
         QT_train = QT_array.reshape(-1, QT_array.shape[-1])
 
 
-    model_history = model.fit(QT_train, Z_train, epochs=epochs, batch_size=batch_size, verbose=2)
+    model_history = model.fit(QT_train, Z_train, epochs=epochs, batch_size=batch_size, verbose=0)
     print("Model training finished.")
     _, rmse = model.evaluate(QT_train, Z_train, verbose=0)
     print(f"Train RMSE: {round(rmse, 3)}")
 
-    return model_history
+    return model_history, rmse
 
 
 def plot_probabilistic_bnn(model, n, z, q_idxplusone=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
@@ -253,8 +246,6 @@ def plot_bnn(model, n, z, iterations=100, q_idxplusone=None, rate_data=None, tem
 def plot_standard_nn(model, n, z, ld_idx=None, q_idxplusone=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
 
     q_idx = q_idxplusone - 1
-    print((rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)]))
-    print(rate_data.shape)
 
     plt.scatter(templist, np.log10(2**(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
 
@@ -371,12 +362,34 @@ def load_standard_nn(n, z, ld_idx):
     return model
 
 
-def reaclib_fit(model):
+def reaclib_exp(t9, a0, a1, a2, a3, a4, a5, a6):
+    """Rate format of REACLIB library.
+    t9          : Temperature in Gigakelvin
+    a0,...,a6   : Parameters of REACLIB function"""
+    params = [a0, a1, a2, a3, a4, a5, a6]
+    s = params[0]
+    for i in range(1, 6):
+        s += params[i]*t9**((2*i-5)/3)
+    s += params[6]*np.log(t9)
+    return s
+
+
+def reaclib_fit(model, Q):
     """Fit the mean NN model values to the Reaclib format, for a specific slice of Q-value."""
-    pass
+    fitY = []
+    fitQT = []
+    fitX = []
+    for T in np.arange(0.0001, 10, 0.001):
+        fitQT.append((Q, T))
+        fitX.append(T)
+    fitY = [np.log(2**rate[0]) for rate in model.predict(fitQT)]
+
+    res, cov = op.curve_fit(reaclib_exp, fitX, fitY)
+
+    return res
 
 
-def reaclib_output_rate(model, file_path):
+def reaclib_output_rate(model, file_path, Q):
     """Append reaclib fit constants to file in file_path."""
     pass
 
@@ -399,33 +412,94 @@ def plot_loss(model_history):
 def main():
     """Just have to figure out what to put here :P"""
 
+    nz_list = []
 
-mae_loss = keras.losses.MeanAbsoluteError()
-train_size = 108*21*6
-bnn_model = create_standard_nn_model()
+    for dirname in os.listdir("data/"):
+        temp = dirname.split("-")
+        nz_list.append([int(temp[1]), int(temp[0])])
 
-data = read_data(56, 79)        # 56, 79 seems problematic
-print([(a) for a in data])
+    arguments = nz_list
+            
+    # parallel computation
+    num_cores = multiprocessing.cpu_count()
+    print(f"Running with {num_cores} cores.")
+    pool = multiprocessing.Pool(num_cores)
+
+    #for argument in arguments:
+     #   print(argument)
+      #  fit_and_save(argument)
+
+    pool.map_async(fit_and_save, arguments)
+
+    pool.close()
+    pool.join()
+            
+
+
+
+def fit_and_save(args):
+    nz = args
+    train_size = 108*21*6
+    n, z = nz
+    data = read_data(n, z)
+    for ld_idx in range(6):
+        if ld_idx not in data[-1]:
+            ld_idxp1 = 1 + ld_idx
+            if os.path.exists(f"NNParameters/{z}-{n}/{ld_idx}.keras"):
+                print("Skipping, already exists.", flush=True)
+                continue
+            nn_model = create_standard_nn_model()
+            history, rmse = fit_data(nn_model, mae_loss, data[0], data[1], train_size, 2*108, ld_idxp1)
+            save_standard_nn(nn_model, n, z, ld_idx)
+            with open("NNParameters/model_data.utf8", "a+") as f:
+                f.write(f"Fit of {z} = , {n} =, {ld_idx} = : {rmse} =  \n")
+    return
+
+
+#main()
+
+
+
+
+    #plot_loss(history)
+
+data = read_data(214, 96)
 
 ld_idx = 0
-ld_idxp1 = 1 + ld_idx
 
-history = fit_data(bnn_model, mae_loss, data[0], data[1], train_size, 32, ld_idxp1=1)
-
-save_standard_nn(bnn_model, 79, 56, ld_idx)
-
-plot_loss(history)
-
-bnn_model = load_standard_nn(79, 56, 0)
+bnn_model = load_standard_nn(214, 96, ld_idx)
 
 for i in range(0, 20):
     qlist = data[2].copy()
     qlist.sort()
     j = data[2].index(qlist[i])
-    plot_standard_nn(bnn_model, 79, 56, ld_idx=ld_idx, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
+    plot_standard_nn(bnn_model, 214, 96, ld_idx=ld_idx, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
 
-#
-#    model, n, z, iterations=100, ld_idx=None, q_idx=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
-#
 
-#plot3d_standard_nn(bnn_model, 79, 56, 1, data[2][10], 10, 0.5, data[2], data[1], data[3])
+plotX = []
+plotT = []
+for T in np.arange(0.001, 10, 0.0001):
+   plotX.append((8.5, T))
+   plotT.append(T)
+
+a0, a1, a2, a3, a4, a5, a6 = (reaclib_fit(bnn_model, 1.0))
+
+plotReac = [reaclib_exp(t, a0, a1, a2, a3, a4, a5, a6) for t in plotT]
+
+print("RMS:" + str(np.sqrt(np.mean(np.array(plotReac) - np.array([np.log(2**rate[0]) for rate in bnn_model.predict(plotX)]))**2)))
+
+predList = bnn_model.predict(plotX)
+
+plotRel = [np.exp(plotreac)/2**(pred[0]) for plotreac, pred in zip(plotReac, predList)]
+
+plt.plot(plotT, [2**rate[0] for rate in bnn_model.predict(plotX)], color="red", label="NNFit")
+plt.plot(plotT, np.exp(plotReac), color="blue", label="REACLIB Polynomial Fit")
+#plt.plot(plotT, plotRel, label="REACLIB/NNFit")
+plt.legend()
+plt.yscale("log")
+plt.savefig("test.png")
+    #
+    #    model, n, z, iterations=100, ld_idx=None, q_idx=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
+    #
+
+    #plot3d_standard_nn(bnn_model, 79, 56, 1, data[2][10], 10, 0.5, data[2], data[1], data[3])
