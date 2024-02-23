@@ -124,6 +124,36 @@ def create_standard_nn_model():
 
     return model
 
+@keras.saving.register_keras_serializable()
+def test_loss(y_true, y_pred):
+    
+    match_value = tf.constant(np.inf)
+
+    sub_const = tf.constant(5.0)
+
+    weighted_loss = tf.where(tf.math.equal(y_true, match_value), 1e-32*((tf.abs(y_pred - tf.reduce_min(y_true - sub_const)))), (tf.abs(y_pred - y_true)))
+
+    #loss = (tf.abs(y_pred - y_true))
+
+    #weighted_loss = tf.where(tf.math.equal(y_true, match_value), 1e-45*loss, loss)
+
+    final_loss = tf.reduce_mean(weighted_loss)
+
+    return final_loss
+
+@keras.saving.register_keras_serializable()
+def test_rms(y_true, y_pred): # make average percentual error as well
+
+    rms = tf.math.squared_difference(y_pred, y_true)
+
+    match_value = tf.constant(np.inf)
+
+    weighted_loss = tf.where(tf.math.equal(y_true, match_value), 0.0, rms)
+
+    final_rms = tf.sqrt(tf.reduce_mean(weighted_loss))
+
+    return final_rms 
+
 
 def negative_loglikelihood(targets, estimated_distribution):
     """Loss function of negative log-likelihood."""
@@ -163,7 +193,7 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),
         loss=loss,
-        metrics=[keras.metrics.RootMeanSquaredError()],
+        metrics=[keras.metrics.RootMeanSquaredError(), test_rms],
     )
 
     print("Start training the model...")
@@ -178,12 +208,12 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
         QT_train = QT_array.reshape(-1, QT_array.shape[-1])
 
 
-    model_history = model.fit(QT_train, Z_train, epochs=epochs, batch_size=batch_size, verbose=0)
+    model_history = model.fit(QT_train, Z_train, epochs=epochs, batch_size=batch_size, verbose=1)
     print("Model training finished.")
-    _, rmse = model.evaluate(QT_train, Z_train, verbose=0)
+    _, rmse, rmse_adj = model.evaluate(QT_train, Z_train, verbose=0)
     print(f"Train RMSE: {round(rmse, 3)}")
 
-    return model_history, rmse
+    return model_history, rmse, rmse_adj
 
 
 def plot_probabilistic_bnn(model, n, z, q_idxplusone=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
@@ -247,18 +277,28 @@ def plot_standard_nn(model, n, z, ld_idx=None, q_idxplusone=None, rate_data=None
 
     q_idx = q_idxplusone - 1
 
-    plt.scatter(templist, np.log10(2**(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
+    fig, axs = plt.subplots(2)
+
+    axs[0].scatter(templist, (2**(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
 
     if qlist:
         Q = qlist[q_idx]
-        tempsLin = np.arange(0.0001, 10, 0.03)
+        tempsLin = np.arange(0.00001, 10, 0.03)
         plotarray = [(Q, t) for t in tempsLin]
-        plt.plot(tempsLin, np.log10(2**(model.predict(plotarray))), color="royalblue", label="NN Predictions")
+        predList = model.predict(plotarray)
+        axs[0].plot(tempsLin, (2**(predList)), color="royalblue", label="NN Predictions")
 
-    plt.title(f"Reaction Rate vs. Temperature for {n=},{z=} and Q={Q} MeV")
-    plt.xlabel("Temperature [GK]")
-    plt.ylabel("log10 Reaction rate")
-    plt.legend()
+    axs[0].set_title(f"Reaction Rate vs. Temperature for {n=},{z=} and Q={Q} MeV")
+    axs[0].set_ylabel("log10 Reaction rate")
+    axs[0].legend()
+    axs[0].set_yscale("log")
+
+
+    pred_discrete_temps = model.predict([(Q, T) for T in templist])
+    axs[1].sharex(axs[0])
+    axs[1].plot(templist, [talys/NN for talys, NN in zip(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)], pred_discrete_temps)],
+                 color="lightsteelblue", label="NN Predictions", linestyle='--', marker='o')
+    axs[1].set_xlabel("Temperature [GK]")
     plt.savefig(name)
     plt.clf()
 
@@ -357,7 +397,7 @@ def load_standard_nn(n, z, ld_idx):
     
     # add different treatment for experimental fit
 
-    model = keras.models.load_model(f'NNParameters/{z}-{n}/{ld_idx}.keras')
+    model = keras.models.load_model(f'NNParameters/{z}-{n}/{ld_idx}.keras', custom_objects={ 'loss': test_loss, 'accuracy' : test_rms })
 
     return model
 
@@ -433,8 +473,7 @@ def main():
 
     pool.close()
     pool.join()
-            
-
+              
 
 
 def fit_and_save(args):
@@ -442,19 +481,23 @@ def fit_and_save(args):
     train_size = 108*21*6
     n, z = nz
     data = read_data(n, z)
+    print(data[-1])
     for ld_idx in range(6):
-        if ld_idx not in data[-1]:
-            ld_idxp1 = 1 + ld_idx
+        ld_idxp1 = 1 + ld_idx
+        if ld_idxp1 not in data[-1]:
+            print(ld_idxp1)
             if os.path.exists(f"NNParameters/{z}-{n}/{ld_idx}.keras"):
                 print("Skipping, already exists.", flush=True)
                 continue
             nn_model = create_standard_nn_model()
-            history, rmse = fit_data(nn_model, mae_loss, data[0], data[1], train_size, 2*108, ld_idxp1)
+            history, rmse, rmse_adj = fit_data(nn_model, test_loss, data[0], data[1], train_size, 2*108, ld_idxp1) # testing custom loss function
             save_standard_nn(nn_model, n, z, ld_idx)
             with open("NNParameters/model_data.utf8", "a+") as f:
-                f.write(f"Fit of {z} = , {n} =, {ld_idx} = : {rmse} =  \n")
+                f.write(f"Fit of (ldmodel, n, z, rmse, rmse_adj): {ld_idxp1}, {n:<4}, {z:<4}, {rmse:<15}, {rmse_adj:<15}  \n")
     return
 
+
+#main()
 
 #main()
 
@@ -463,43 +506,56 @@ def fit_and_save(args):
 
     #plot_loss(history)
 
-data = read_data(214, 96)
 
-ld_idx = 0
 
-bnn_model = load_standard_nn(214, 96, ld_idx)
+#fit_and_save([84, 43])
+
+
+data = read_data(84, 43)
+
+ld_idx = 0 # check indices...
+
+bnn_model = load_standard_nn(84, 43, ld_idx)
 
 for i in range(0, 20):
     qlist = data[2].copy()
     qlist.sort()
     j = data[2].index(qlist[i])
-    plot_standard_nn(bnn_model, 214, 96, ld_idx=ld_idx, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
+    plot_standard_nn(bnn_model, 84, 43, ld_idx=ld_idx, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
 
+Q = 1.0
 
 plotX = []
 plotT = []
 for T in np.arange(0.001, 10, 0.0001):
-   plotX.append((8.5, T))
+   plotX.append((Q, T))
    plotT.append(T)
 
-a0, a1, a2, a3, a4, a5, a6 = (reaclib_fit(bnn_model, 1.0))
+a0, a1, a2, a3, a4, a5, a6 = (reaclib_fit(bnn_model, Q))
 
 plotReac = [reaclib_exp(t, a0, a1, a2, a3, a4, a5, a6) for t in plotT]
 
-print("RMS:" + str(np.sqrt(np.mean(np.array(plotReac) - np.array([np.log(2**rate[0]) for rate in bnn_model.predict(plotX)]))**2)))
-
 predList = bnn_model.predict(plotX)
+
+print("RMS:" + str(np.sqrt(np.mean(np.array(plotReac) - np.array([np.log(2**rate[0]) for rate in predList]))**2)))
+
 
 plotRel = [np.exp(plotreac)/2**(pred[0]) for plotreac, pred in zip(plotReac, predList)]
 
-plt.plot(plotT, [2**rate[0] for rate in bnn_model.predict(plotX)], color="red", label="NNFit")
+plt.plot(plotT, [2**rate[0] for rate in predList], color="red", label="NNFit")
 plt.plot(plotT, np.exp(plotReac), color="blue", label="REACLIB Polynomial Fit")
-#plt.plot(plotT, plotRel, label="REACLIB/NNFit")
+plt.plot(plotT, plotRel, label="REACLIB/NNFit")
 plt.legend()
 plt.yscale("log")
 plt.savefig("test.png")
+
+
     #
     #    model, n, z, iterations=100, ld_idx=None, q_idx=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
     #
 
     #plot3d_standard_nn(bnn_model, 79, 56, 1, data[2][10], 10, 0.5, data[2], data[1], data[3])
+
+
+
+
