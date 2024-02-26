@@ -113,7 +113,7 @@ def create_bnn_model(train_size):
 
 def create_standard_nn_model():
     """Creates a standard Neural Network for fitting the rates with high accuracy."""
-    model = keras.Sequential([keras.layers.Input(shape=(2,)),
+    model = keras.Sequential([layers.Input(shape=(2,)),
         layers.Dense(
                 units=32, # 32
                 activation="sigmoid"),
@@ -124,14 +124,23 @@ def create_standard_nn_model():
 
     return model
 
-@keras.saving.register_keras_serializable()
-def test_loss(y_true, y_pred):
-    
-    match_value = tf.constant(np.inf)
 
+def geometric_mean(y_tensor): # test
+    logx = tf.math.log(y_tensor)
+    return tf.exp(tf.reduce_mean(logx))
+
+
+
+@keras.saving.register_keras_serializable()
+def mae_loss_no_zero_rates(y_true, y_pred):
+    """Custom mean absolute error loss function used for fitting the rates. Standard MAE except for
+    rates = 0, in which case we replace these with the log(minimal rate value for the nucleus) - 5, and 
+    give them a much smaller weight in the loss calculations. This is done to focus on the behaviour at non-zero rates
+    (since zero rates -> -infinity in log format), while still maintaining the negative trend of the rates."""
+    
     sub_const = tf.constant(5.0)
 
-    weighted_loss = tf.where(tf.math.equal(y_true, match_value), 1e-32*((tf.abs(y_pred - tf.reduce_min(y_true - sub_const)))), (tf.abs(y_pred - y_true)))
+    weighted_loss = tf.where(tf.math.is_inf(y_true), 1e-100*((tf.abs(y_pred - tf.reduce_min(y_true - sub_const)))), tf.abs(y_pred - y_true))
 
     #loss = (tf.abs(y_pred - y_true))
 
@@ -141,16 +150,75 @@ def test_loss(y_true, y_pred):
 
     return final_loss
 
-@keras.saving.register_keras_serializable()
-def test_rms(y_true, y_pred): # make average percentual error as well
 
+@keras.saving.register_keras_serializable()
+def test_loss(y_true, y_pred):
+    """Custom mean absolute error loss function used for fitting the rates. Standard MAE except for
+    rates = 0, in which case we replace these with the log(minimal rate value for the nucleus) - 5, and 
+    give them a much smaller weight in the loss calculations. This is done to focus on the behaviour at non-zero rates
+    (since zero rates -> -infinity in log format), while still maintaining the negative trend of the rates."""
+    
+    sub_const = tf.constant(5.0)
+
+    minimal_ytrue = tf.reduce_min(y_true)
+
+    weighted_loss = tf.where(tf.math.is_inf(y_true), 1e-100*((tf.abs(y_pred - (minimal_ytrue - sub_const)))) - minimal_ytrue, tf.abs(y_pred - y_true) - minimal_ytrue)
+
+    #loss = (tf.abs(y_pred - y_true))
+
+    #weighted_loss = tf.where(tf.math.equal(y_true, match_value), 1e-45*loss, loss)
+
+    final_loss = tf.reduce_mean(weighted_loss)
+
+    return final_loss
+
+
+
+
+@keras.saving.register_keras_serializable()
+def mape_loss_no_zero(y_true, y_pred):
+    """Mean average percentage error metric for evualuating the fit, disregarding rates = 0."""
+
+    #mae = tf.abs(tf.math.subtract(2**y_pred, 2**y_true))
+
+    sub_const = tf.constant(5.0)
+
+    minimal_ytrue = tf.math.reduce_min(y_true)
+
+    weighted_log_loss = tf.where(tf.math.is_inf(y_true), tf.math.log(1e-32*tf.abs(tf.divide(tf.subtract(tf.pow(2.0, y_pred), tf.pow(2.0, minimal_ytrue - sub_const)), tf.pow(2.0, tf.reduce_min(y_true - sub_const))))), tf.math.log(tf.abs(tf.divide(tf.subtract(tf.pow(2.0, y_pred), tf.pow(2.0, y_true)), 1)))) #tf.pow(2.0, y_true)))))
+
+    #weighted_loss = tf.where(tf.math.greater(weighted_log_loss, 10), tf.constant(1e10), tf.math.exp(weighted_log_loss))
+
+    final_loss = tf.reduce_mean(weighted_log_loss)
+
+    return final_loss
+
+@keras.saving.register_keras_serializable()
+def mape_no_zero_rates(y_true, y_pred):
+    """Mean average percentage error metric for evualuating the fit, disregarding rates = 0."""
+
+    #mae = tf.abs(tf.math.subtract(2**y_pred, 2**y_true))
+
+    match_value = tf.constant(np.inf)
+
+    weighted_loss = tf.where(tf.math.is_inf(y_true), 0.0, tf.abs(tf.divide(tf.subtract(tf.pow(2.0, y_pred), tf.pow(2.0, y_true)), tf.pow(2.0, y_true))))
+
+    final_mape = tf.divide(tf.reduce_sum(weighted_loss), tf.cast(tf.math.count_nonzero(weighted_loss), tf.float32))*100
+
+    return final_mape
+
+
+@keras.saving.register_keras_serializable()
+def rmse_no_zero_rates(y_true, y_pred): 
+    """Root mean square error metric for evualuating the fit, disregarding rates = 0."""
+    
     rms = tf.math.squared_difference(y_pred, y_true)
 
     match_value = tf.constant(np.inf)
 
-    weighted_loss = tf.where(tf.math.equal(y_true, match_value), 0.0, rms)
+    weighted_loss = tf.where(tf.math.is_inf(y_true), 0.0, rms)
 
-    final_rms = tf.sqrt(tf.reduce_mean(weighted_loss))
+    final_rms = tf.sqrt(tf.divide(tf.reduce_sum(weighted_loss), tf.cast(tf.math.count_nonzero(weighted_loss), tf.float32)))
 
     return final_rms 
 
@@ -193,7 +261,7 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),
         loss=loss,
-        metrics=[keras.metrics.RootMeanSquaredError(), test_rms],
+        metrics=[rmse_no_zero_rates, mape_no_zero_rates],
     )
 
     print("Start training the model...")
@@ -210,10 +278,10 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
 
     model_history = model.fit(QT_train, Z_train, epochs=epochs, batch_size=batch_size, verbose=1)
     print("Model training finished.")
-    _, rmse, rmse_adj = model.evaluate(QT_train, Z_train, verbose=0)
+    _, rmse, mae = model.evaluate(QT_train, Z_train, verbose=0)
     print(f"Train RMSE: {round(rmse, 3)}")
 
-    return model_history, rmse, rmse_adj
+    return model_history, rmse, mae
 
 
 def plot_probabilistic_bnn(model, n, z, q_idxplusone=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
@@ -294,11 +362,14 @@ def plot_standard_nn(model, n, z, ld_idx=None, q_idxplusone=None, rate_data=None
     axs[0].set_yscale("log")
 
 
-    pred_discrete_temps = model.predict([(Q, T) for T in templist])
+    pred_discrete_temps = 2**model.predict([(Q, T) for T in templist])
     axs[1].sharex(axs[0])
-    axs[1].plot(templist, [talys/NN for talys, NN in zip(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)], pred_discrete_temps)],
-                 color="lightsteelblue", label="NN Predictions", linestyle='--', marker='o')
+    axs[1].plot(templist, [NN/talys - 1 for talys, NN in zip(2**rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)], pred_discrete_temps)],
+                 color="lightsteelblue", label=f"Neural Network Predictions vs. Talys %-deviations", linestyle='--', marker='o')
+    axs[1].plot([0, 10], [0, 0], color="gray", linestyle='dashed')
     axs[1].set_xlabel("Temperature [GK]")
+    axs[1].set_ylabel("Percentual Deviation vs. Talys")
+    axs[1].set_ylim(-0.5, 0.5)
     plt.savefig(name)
     plt.clf()
 
@@ -397,7 +468,7 @@ def load_standard_nn(n, z, ld_idx):
     
     # add different treatment for experimental fit
 
-    model = keras.models.load_model(f'NNParameters/{z}-{n}/{ld_idx}.keras', custom_objects={ 'loss': test_loss, 'accuracy' : test_rms })
+    model = keras.models.load_model(f'NNParameters/{z}-{n}/{ld_idx}.keras', custom_objects={ 'loss': mae_loss_no_zero_rates, 'accuracy' : rmse_no_zero_rates })
 
     return model
 
@@ -490,10 +561,12 @@ def fit_and_save(args):
                 print("Skipping, already exists.", flush=True)
                 continue
             nn_model = create_standard_nn_model()
-            history, rmse, rmse_adj = fit_data(nn_model, test_loss, data[0], data[1], train_size, 2*108, ld_idxp1) # testing custom loss function
+            history, rmse, mae = fit_data(nn_model, test_loss, data[0], data[1], train_size, 2*108, ld_idxp1) # testing custom loss function
             save_standard_nn(nn_model, n, z, ld_idx)
             with open("NNParameters/model_data.utf8", "a+") as f:
-                f.write(f"Fit of (ldmodel, n, z, rmse, rmse_adj): {ld_idxp1}, {n:<4}, {z:<4}, {rmse:<15}, {rmse_adj:<15}  \n")
+                if not os.path.getsize("NNParameters/model_data.utf8"):
+                    f.write("ld, n   , z   , rmse            , mae           \n")
+                f.write(f"{ld_idxp1:>2}, {n:<4}, {z:<4}, {rmse:<15}, {mae:<15}%  \n")
     return
 
 
@@ -510,18 +583,18 @@ def fit_and_save(args):
 
 #fit_and_save([84, 43])
 
-
-data = read_data(84, 43)
+n, z = 84, 43
+data = read_data(n, z)
 
 ld_idx = 0 # check indices...
 
-bnn_model = load_standard_nn(84, 43, ld_idx)
+bnn_model = load_standard_nn(n, z, ld_idx)
 
 for i in range(0, 20):
     qlist = data[2].copy()
     qlist.sort()
     j = data[2].index(qlist[i])
-    plot_standard_nn(bnn_model, 84, 43, ld_idx=ld_idx, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
+    plot_standard_nn(bnn_model, n, z, ld_idx=ld_idx, q_idxplusone=j+1, rate_data=data[1], templist=data[3], qlist=data[2], name = f"plots/plot{i}.png")
 
 Q = 1.0
 
@@ -559,3 +632,14 @@ plt.savefig("test.png")
 
 
 
+
+
+
+# TODO:
+#
+# * Test different loss function, with some sort of weighting to different rates somehow.
+#       - Now trying MAPE, will probably have to revert back though.
+#
+#
+#
+#
