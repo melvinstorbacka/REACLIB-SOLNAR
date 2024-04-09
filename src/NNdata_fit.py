@@ -160,11 +160,26 @@ def test_loss(y_true, y_pred):
     
     sub_const = tf.constant(5.0)
 
+    non_inf_values = tf.where(tf.math.is_inf(y_true), 0.0, y_true)
+
+    maximal_y_true = tf.reduce_max(non_inf_values)
+
+    y_true = tf.math.divide(y_true, maximal_y_true)
+    y_pred = tf.math.divide(y_pred, maximal_y_true)
+
     minimal_ytrue = tf.reduce_min(y_true)
 
-    weighted_loss = tf.where(tf.math.is_inf(y_true), 1e-100*((tf.abs(y_pred - (minimal_ytrue - sub_const)))) - minimal_ytrue, tf.abs(y_pred - y_true) - minimal_ytrue)
+   #rms = tf.math.squared_difference()
+
+    #weighted_loss = tf.where(tf.math.is_inf(y_true), 1e-100*((tf.abs((y_pred - minimal_ytrue)**2 - (sub_const)**2))), tf.math.squared_difference(y_pred - minimal_ytrue, y_true - minimal_ytrue))
+
+
+    weighted_loss = tf.where(tf.math.is_inf(y_true), 1e-255*((tf.abs(y_pred - (minimal_ytrue - sub_const)))), tf.abs(y_pred - y_true))
 
     #loss = (tf.abs(y_pred - y_true))
+
+    #y_true = 100*y_true[:7] + y_true[7:]    # test TODO
+    #y_pred = 100*y_pred[:7] + y_pred[7:]
 
     #weighted_loss = tf.where(tf.math.equal(y_true, match_value), 1e-45*loss, loss)
 
@@ -179,7 +194,7 @@ def test_loss(y_true, y_pred):
 def mape_loss_no_zero(y_true, y_pred):
     """Mean average percentage error metric for evualuating the fit, disregarding rates = 0."""
 
-    #mae = tf.abs(tf.math.subtract(2**y_pred, 2**y_true))
+    #mae = tf.abs(tf.math.subtract(np.exp(y_pred, np.exp(y_true))
 
     sub_const = tf.constant(5.0)
 
@@ -197,7 +212,7 @@ def mape_loss_no_zero(y_true, y_pred):
 def mape_no_zero_rates(y_true, y_pred):
     """Mean average percentage error metric for evualuating the fit, disregarding rates = 0."""
 
-    #mae = tf.abs(tf.math.subtract(2**y_pred, 2**y_true))
+    #mae = tf.abs(tf.math.subtract(10**y_pred, 10**y_true))
 
     match_value = tf.constant(np.inf)
 
@@ -206,6 +221,42 @@ def mape_no_zero_rates(y_true, y_pred):
     final_mape = tf.divide(tf.reduce_sum(weighted_loss), tf.cast(tf.math.count_nonzero(weighted_loss), tf.float32))*100
 
     return final_mape
+
+
+@keras.saving.register_keras_serializable()
+def mape_no_zero_rates_greaterpoint1GK(y_true, y_pred):
+    """Mean average percentage error metric for evualuating the fit, disregarding rates = 0."""
+
+    #mae = tf.abs(tf.math.subtract(10**y_pred, 10**y_true))
+
+    y_true = y_true[7:]
+    y_pred = y_pred[7:]
+
+    match_value = tf.constant(np.inf)
+
+    weighted_loss = tf.where(tf.math.is_inf(y_true), 0.0, tf.abs(tf.divide(tf.subtract(tf.pow(2.0, y_pred), tf.pow(2.0, y_true)), tf.pow(2.0, y_true))))
+
+    final_mape = tf.divide(tf.reduce_sum(weighted_loss), tf.cast(tf.math.count_nonzero(weighted_loss), tf.float32))*100
+
+    return final_mape
+
+
+def mape_weighted_low_temps(y_true, y_pred):
+    """Mean average percentage error metric for evualuating the fit, disregarding rates = 0."""
+
+    #mae = tf.abs(tf.math.subtract(10**y_pred, 10**y_true))
+
+    y_true = y_true
+    y_pred = y_pred
+
+    match_value = tf.constant(np.inf)
+
+    weighted_loss = tf.where(tf.math.is_inf(y_true), 0.0, tf.abs(tf.divide(tf.subtract(tf.pow(2.0, y_pred), tf.pow(2.0, y_true)), tf.pow(2.0, y_true))))
+
+    final_mape = tf.divide(tf.reduce_sum(weighted_loss), tf.cast(tf.math.count_nonzero(weighted_loss), tf.float32))*100
+
+    return final_mape
+
 
 
 @keras.saving.register_keras_serializable()
@@ -261,7 +312,7 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),
         loss=loss,
-        metrics=[rmse_no_zero_rates, mape_no_zero_rates],
+        metrics=[rmse_no_zero_rates, mape_no_zero_rates, mape_no_zero_rates_greaterpoint1GK],
     )
 
     print("Start training the model...")
@@ -276,12 +327,12 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
         QT_train = QT_array.reshape(-1, QT_array.shape[-1])
 
 
-    model_history = model.fit(QT_train, Z_train, epochs=epochs, batch_size=batch_size, verbose=1)
+    model_history = model.fit(QT_train, Z_train, epochs=epochs, batch_size=batch_size, verbose=0)
     print("Model training finished.")
-    _, rmse, mae = model.evaluate(QT_train, Z_train, verbose=0)
+    _, rmse, mae, mae1GK = model.evaluate(QT_train, Z_train, verbose=0)
     print(f"Train RMSE: {round(rmse, 3)}")
 
-    return model_history, rmse, mae
+    return model_history, rmse, mae, mae1GK
 
 
 def plot_probabilistic_bnn(model, n, z, q_idxplusone=None, rate_data=None, templist=None, qlist=None, name="plots/test.png"):
@@ -290,12 +341,12 @@ def plot_probabilistic_bnn(model, n, z, q_idxplusone=None, rate_data=None, templ
     Q = qlist[q_idx]
 
     if q_idxplusone and rate_data is not None and templist is not None:
-        plt.plot(templist, np.log10(2**(rate_data[0, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[1, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[2, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[3, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[4, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
-        plt.plot(templist, np.log10(2**(rate_data[5, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
+        plt.plot(templist, np.log10(10**(rate_data[0, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(10**(rate_data[1, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(10**(rate_data[2, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(10**(rate_data[3, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(10**(rate_data[4, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+        plt.plot(templist, np.log10(10**(rate_data[5, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
 
     if Q:
         tempsLin = np.arange(0.0001, 10, 0.03)
@@ -305,8 +356,8 @@ def plot_probabilistic_bnn(model, n, z, q_idxplusone=None, rate_data=None, templ
         prediction_mean = prediction_distribution.mean().numpy()
         prediction_stdv = prediction_distribution.stddev().numpy()
 
-        plt.plot(tempsLin, np.log10(2**prediction_mean), color="royalblue", label="Mean Fit, μ")
-        plt.fill_between(tempsLin, (np.log10(2**(prediction_mean + prediction_stdv))).flatten(), (np.log10(2**(prediction_mean - prediction_stdv))).flatten(), color="lightsteelblue", label="μ±σ")
+        plt.plot(tempsLin, np.log10(10**prediction_mean), color="royalblue", label="Mean Fit, μ")
+        plt.fill_between(tempsLin, (np.log10(10**(prediction_mean + prediction_stdv))).flatten(), (np.log10(10**(prediction_mean - prediction_stdv))).flatten(), color="lightsteelblue", label="μ±σ")
 
     plt.title(f"Reaction Rate vs. Temperature for {n=},{z=} and Q={Q} MeV")
     plt.xlabel("Temperature [GK]")
@@ -321,17 +372,17 @@ def plot_bnn(model, n, z, iterations=100, q_idxplusone=None, rate_data=None, tem
     q_idx = q_idxplusone - 1
 
     if  q_idxplusone and rate_data is not None and templist is not None:
-        plt.scatter(templist, np.log10(2**(rate_data[0, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
+        plt.scatter(templist, np.log10(10**(rate_data[0, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
         for ld_idx in range(1, 6): 
-            plt.scatter(templist, np.log10(2**(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
+            plt.scatter(templist, np.log10(10**(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1)
 
     if qlist:
         Q = qlist[q_idx]
         tempsLin = np.arange(0.0001, 10, 0.03)
         plotarray = [(Q, t) for t in tempsLin]
-        plt.plot(tempsLin, np.log10(2**(model.predict(plotarray))), color="lightsteelblue", label="BNN Predictions")
+        plt.plot(tempsLin, np.log10(10**(model.predict(plotarray))), color="lightsteelblue", label="BNN Predictions")
         for _ in range(iterations - 1):
-           plt.plot(tempsLin, np.log10(2**(model.predict(plotarray))), color="lightsteelblue")
+           plt.plot(tempsLin, np.log10(10**(model.predict(plotarray))), color="lightsteelblue")
 
     plt.title(f"Reaction Rate vs. Temperature for {n=},{z=} and Q={Q} MeV")
     plt.xlabel("Temperature [GK]")
@@ -347,29 +398,29 @@ def plot_standard_nn(model, n, z, ld_idx=None, q_idxplusone=None, rate_data=None
 
     fig, axs = plt.subplots(2)
 
-    axs[0].scatter(templist, (2**(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
+    axs[0].scatter(templist, (10**(rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)])), color="red", linewidth=1, label="TALYS Data")
 
     if qlist:
         Q = qlist[q_idx]
         tempsLin = np.arange(0.00001, 10, 0.03)
         plotarray = [(Q, t) for t in tempsLin]
         predList = model.predict(plotarray)
-        axs[0].plot(tempsLin, (2**(predList)), color="royalblue", label="NN Predictions")
+        axs[0].plot(tempsLin, (10**(predList)), color="royalblue", label="NN Predictions")
 
     axs[0].set_title(f"Reaction Rate vs. Temperature for {n=},{z=} and Q={Q} MeV")
-    axs[0].set_ylabel("log10 Reaction rate")
+    axs[0].set_ylabel("Reaction rate")
     axs[0].legend()
     axs[0].set_yscale("log")
 
 
-    pred_discrete_temps = 2**model.predict([(Q, T) for T in templist])
+    pred_discrete_temps = 10**model.predict([(Q, T) for T in templist])
     axs[1].sharex(axs[0])
-    axs[1].plot(templist, [NN/talys - 1 for talys, NN in zip(2**rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)], pred_discrete_temps)],
+    axs[1].plot(templist, [NN/talys - 1 for talys, NN in zip(10**rate_data[ld_idx, q_idx*len(templist):(q_idx+1)*len(templist)], pred_discrete_temps)],
                  color="lightsteelblue", label=f"Neural Network Predictions vs. Talys %-deviations", linestyle='--', marker='o')
     axs[1].plot([0, 10], [0, 0], color="gray", linestyle='dashed')
     axs[1].set_xlabel("Temperature [GK]")
     axs[1].set_ylabel("Percentual Deviation vs. Talys")
-    axs[1].set_ylim(-0.5, 0.5)
+    axs[1].set_ylim(-0.1, 0.1)
     plt.savefig(name)
     plt.clf()
 
@@ -390,8 +441,8 @@ def plot3d_standard_nn(model, n, z, ld_idx=None, Q=None, num_q=None, q_step=None
     QG, TG = np.meshgrid(np.array(q_list), np.array(templist))
     Z_plot = np.reshape(rate_data[ld_idx, :], (len(q_list), len(templist)))
 
-    ax.plot_surface(TG, QG, np.log10(2**(Z_plot.transpose())), cmap='plasma', alpha=0.8, label="TALYS Data")
-    ax.set_zlim(0,np.log10(2**(np.max(rate_data))))
+    ax.plot_surface(TG, QG, np.log10(10**(Z_plot.transpose())), cmap='plasma', alpha=0.8, label="TALYS Data")
+    ax.set_zlim(0,np.log10(10**(np.max(rate_data))))
 
 
     plt.title(f"Reaction Rate vs. Temperature vs. Q-value for {n=},{z=}")
@@ -403,7 +454,7 @@ def plot3d_standard_nn(model, n, z, ld_idx=None, Q=None, num_q=None, q_step=None
 
     QGF, TGF = np.meshgrid(q_fine_grid, temp_fine_grid)
 
-    plot_list = np.log10(2**(model.predict(calc_list)))
+    plot_list = np.log10(10**(model.predict(calc_list)))
 
     plot_list = np.reshape(plot_list, TGF.shape)
 
@@ -468,7 +519,7 @@ def load_standard_nn(n, z, ld_idx):
     
     # add different treatment for experimental fit
 
-    model = keras.models.load_model(f'NNParameters/{z}-{n}/{ld_idx}.keras', custom_objects={ 'loss': mae_loss_no_zero_rates, 'accuracy' : rmse_no_zero_rates })
+    model = keras.models.load_model(f'NNParameters/{z}-{n}/{ld_idx}.keras', custom_objects={ 'loss': mae_loss_no_zero_rates, 'accuracy' : rmse_no_zero_rates})
 
     return model
 
@@ -493,7 +544,7 @@ def reaclib_fit(model, Q):
     for T in np.arange(0.0001, 10, 0.001):
         fitQT.append((Q, T))
         fitX.append(T)
-    fitY = [np.log(2**rate[0]) for rate in model.predict(fitQT)]
+    fitY = [np.log(10**rate[0]) for rate in model.predict(fitQT)]
 
     res, cov = op.curve_fit(reaclib_exp, fitX, fitY)
 
@@ -561,16 +612,16 @@ def fit_and_save(args):
                 print("Skipping, already exists.", flush=True)
                 continue
             nn_model = create_standard_nn_model()
-            history, rmse, mae = fit_data(nn_model, test_loss, data[0], data[1], train_size, 2*108, ld_idxp1) # testing custom loss function
+            history, rmse, mae, mae1GK = fit_data(nn_model, test_loss, data[0], data[1], train_size, 2*108, ld_idxp1) # testing custom loss function
             save_standard_nn(nn_model, n, z, ld_idx)
             with open("NNParameters/model_data.utf8", "a+") as f:
                 if not os.path.getsize("NNParameters/model_data.utf8"):
-                    f.write("ld, n   , z   , rmse            , mae           \n")
-                f.write(f"{ld_idxp1:>2}, {n:<4}, {z:<4}, {rmse:<15}, {mae:<15}%  \n")
+                    f.write("ld, n   , z   , rmse    , mae     , mae>1GK \n")
+                f.write(f"{ld_idxp1:>2}, {n:<4}, {z:<4}, {rmse:8.5f}, {mae:8.5f}%, {mae1GK:8.5f}%  \n")
     return
 
 
-#main()
+main()
 
 #main()
 
@@ -581,12 +632,15 @@ def fit_and_save(args):
 
 
 
-#fit_and_save([84, 43])
+#fit_and_save([214 , 96])
+#fit_and_save([217, 117])
+#fit_and_save([213, 119])
 
-n, z = 84, 43
+"""
+n, z = 214 , 96 #214 , 96
 data = read_data(n, z)
 
-ld_idx = 0 # check indices...
+ld_idx = 1 # check indices...
 
 bnn_model = load_standard_nn(n, z, ld_idx)
 
@@ -610,12 +664,12 @@ plotReac = [reaclib_exp(t, a0, a1, a2, a3, a4, a5, a6) for t in plotT]
 
 predList = bnn_model.predict(plotX)
 
-print("RMS:" + str(np.sqrt(np.mean(np.array(plotReac) - np.array([np.log(2**rate[0]) for rate in predList]))**2)))
+print("RMS:" + str(np.sqrt(np.mean(np.array(plotReac) - np.array([np.log(10**rate[0]) for rate in predList]))**2)))
 
 
-plotRel = [np.exp(plotreac)/2**(pred[0]) for plotreac, pred in zip(plotReac, predList)]
+plotRel = [np.exp(plotreac)/10**(pred[0]) for plotreac, pred in zip(plotReac, predList)]
 
-plt.plot(plotT, [2**rate[0] for rate in predList], color="red", label="NNFit")
+plt.plot(plotT, [10**rate[0] for rate in predList], color="red", label="NNFit")
 plt.plot(plotT, np.exp(plotReac), color="blue", label="REACLIB Polynomial Fit")
 plt.plot(plotT, plotRel, label="REACLIB/NNFit")
 plt.legend()
@@ -630,16 +684,5 @@ plt.savefig("test.png")
     #plot3d_standard_nn(bnn_model, 79, 56, 1, data[2][10], 10, 0.5, data[2], data[1], data[3])
 
 
+"""
 
-
-
-
-
-# TODO:
-#
-# * Test different loss function, with some sort of weighting to different rates somehow.
-#       - Now trying MAPE, will probably have to revert back though.
-#
-#
-#
-#

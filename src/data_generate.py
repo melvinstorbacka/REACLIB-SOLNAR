@@ -76,10 +76,10 @@ def DZ10_masses(ame20_path, params, nuclei_lst):
     ame20_path  : path to ame20 data file
     params      : parameters of dz10 model
     nuclei_lst  : list of nuclei for which we want to calculate rates """
-    out_array = np.zeros((10000, 4)) # up to 10000 nuclei currently
+    out_array = np.zeros((2*len(nuclei_lst), 4)) # up to 10000 nuclei currently
     counter = 0
     with open(ame20_path, "r") as f:
-        for i in range(0, 36):
+        for _ in range(0, 36):
             f.readline()
         while True:
             line = f.readline()
@@ -356,7 +356,7 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, num_qs_exp, q_step, mass_
                 if me is not None: # checks that we have data for the product
                     arguments.append((n, z, me, q_step, num_qs, talys_path, idx, ld_idx, False))
         # checks if we have uncertainty from AME20. If so, run more refined calculations
-        # within +- 2*uncertainty (2?) TODO: ask
+        # within +- 2*uncertainty
         if me[-1] != 0:
             print(n, z)
             for idx in range(num_qs_exp):

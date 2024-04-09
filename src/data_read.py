@@ -25,7 +25,7 @@ def read(files, dir_path):
             ind = templist[ld_idx - 1].index(temperature)
             qlist[ld_idx - 1].append(Q)
             if rate != 0:
-                rate = np.log2(rate)
+                rate = np.log10(rate)
             else:
                 rate = np.inf # The idea is that this shouldn't cause any interference.
             rate_points[ld_idx-1].append(rate)
@@ -39,7 +39,7 @@ def read(files, dir_path):
                     if temperature not in templist[ld_idx - 1]:
                         templist[ld_idx-1].append(temperature)
                     if rate != 0:
-                        rate = np.log2(rate)
+                        rate = np.log10(rate)
                     else:
                         rate = np.inf
                     rate_points[ld_idx-1].append(rate)
@@ -63,7 +63,7 @@ def read(files, dir_path):
             minimal_rate = min(ld_idx_array)
             for entry in ld_idx_array:
                 if entry == np.inf:
-                    ld_idx_array[ld_idx_array.index(entry)] = minimal_rate - 5 #np.inf #np.log2(1e-45) #
+                    ld_idx_array[ld_idx_array.index(entry)] = np.inf #np.log2(1e-45) #minimal_rate - 5 
                     # After quite a lot of testing, this seems to give the best results. Generally, for any calculations where the some rates are 0, 
                     # the rates above are close to 0, causing this approximation to work well. Moreover, setting a constant small value of, say, 1e-50,
                     # means that we have less accuracy at higher rates. Now, we have good fit accuracy over the whole range.
