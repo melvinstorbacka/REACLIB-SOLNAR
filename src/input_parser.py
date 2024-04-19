@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
+import logging
 
 """"""
 
@@ -144,16 +146,62 @@ nbins (default maximum)
 
 
 # create dictionary of all keywords and their corresponding handling function
-keyword_dict = {"" : ""}
 
+
+def ldmodel(calculation_args, inp):
+    """Checks the input parameter, and adds the ldmodel argument to the argument list"""
+    try:
+        if 1 <= int(inp) <= 6:
+            calculation_args[0] = int(inp)
+        else:
+            raise ValueError("LD model ID out of bounds 1 <= ldmodel <= 6. Check input.")
+    except ValueError:
+        logging.error("LD model ID out of bounds 1 <= ldmodel <= 6. Check input.")
+        raise
+
+
+keyword_dict = {"ldmodel" : ldmodel}
 
 
 def read_input(input_path):
     """Reads the input from input_path.
     input_path : path to input file"""
-    with open(input_path, "utf8", encoding="utf8") as f:
+
+    calculation_args = [None for _ in range(0, 4)]
+
+    with open(input_path, "r", encoding="utf8") as f:
         while True:
             line = f.readline()
             if not line:
                 break
-            line = f.readline()
+
+            line = line.strip()
+            if line:
+                input_line = line.split(":")
+                keyword_dict[input_line[0].strip()](calculation_args, input_line[1])
+
+
+    return calculation_args
+
+
+
+
+
+def main():
+    args = sys.argv[1:3]
+    try:
+        input_path = args[0]
+        output_path = args[1]
+    except IndexError:
+        logging.error("Insufficient arguments supplied. Have you given both input and output paths?")
+        raise
+
+    calculation_args = read_input(input_path)
+    
+
+
+
+
+
+if __name__ == "__main__":
+    main()
