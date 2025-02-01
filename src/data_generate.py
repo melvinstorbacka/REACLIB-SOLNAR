@@ -76,7 +76,7 @@ def DZ10_masses(ame20_path, params, nuclei_lst):
     ame20_path  : path to ame20 data file
     params      : parameters of dz10 model
     nuclei_lst  : list of nuclei for which we want to calculate rates """
-    out_array = np.zeros((2*len(nuclei_lst), 4)) # up to 10000 nuclei currently
+    out_array = np.zeros((20000, 4)) # up to 10000 nuclei currently
     counter = 0
     with open(ame20_path, "r") as f:
         for _ in range(0, 36):
@@ -165,29 +165,60 @@ def perform_calculation(arguments):
 
     calculation_idx = os.getpid()
 
-    print("Starting" + str(arguments), flush=True)
+    #print("Starting" + str(arguments), flush=True)
  
     # confirmed to give a +/- (num_qs - 1)/2 even spread
     current_me = (baseline_mes[0] + (q_step)*(q_num - (num_qs - 1)/2), baseline_mes[1])
     # test what the Q-value "should" be
     q_value = (current_me[0] + MENEUTRON) - current_me[1]
 
+    remaining_args = []
+
+    #with open("remaining_list1.txt", "r") as f:
+     #   while True:
+      #      line = f.readline()
+       #     if not line:
+        #        break
+         #   elements = line.split(",")
+          #  remaining_args.append([int(elements[0]), int(elements[1]), float(elements[2]), int(elements[3]), bool(elements[4])])
+
+
+    #if [n, z, np.round(q_value, 5), ld_idx, exp] not in remaining_args:
+     #   print([n, z, np.round(q_value, 5), ld_idx, exp])
+      #  return
 
     name = "|" + str(round(q_value, 5)) + "|" + f"{ld_idx:03d}" + "|"
 
-    print("Checking existence of previous calculations.", flush=True)
+    #with open("total_calculations_list.txt", "a+") as f: # to be used for creating list of nuclei
+     #   f.write(f"{n}-{z}-{name}{exp}\n")
 
+
+   #print("Checking existence of previous calculations.", flush=True)
+
+
+                # NOTE: Switch back to data
     if exp:
         if os.path.exists(f"data/{z}-{n}/rate{name}-exp.g"):
-            logging.warning(f"Skipping data/{z}-{n}/rate{name}-exp.g, already found!")
+            if z == 25 and n == 81:
+                print(f"data/{z}-{n}/rate{name}-exp.g")
+            #logging.warning(f"Skipping data/{z}-{n}/rate{name}-exp.g, already found!")
             return
     else:
         if os.path.exists(f"data/{z}-{n}/rate{name}.g"):
-            logging.warning("Skipping " +  f"data/{z}-{n}/rate{name}.g, already found!")
+            if z == 25 and n == 81:
+                print(f"data/{z}-{n}/rate{name}-exp.g")
+            #logging.warning("Skipping " +  f"data/{z}-{n}/rate{name}.g, already found!")
             return
-        
+            
+    #print(arguments, flush=True)
+    with open("remaining_args", "a+") as f:
+        f.write(str(arguments) + "\n")
+    
+    #print(q_value, flush=True)
 
-    print("Initiating.", flush=True)
+    #print(arguments)
+
+    """print("Initiating.", flush=True)
 
     init_calculation(calculation_idx)
 
@@ -208,7 +239,7 @@ def perform_calculation(arguments):
     clean_calculation(calculation_idx)
 
     print("Returning!", flush=True)
-
+"""
     return
 
 def save_calculation_results(calculation_idx, n, z, name, exp=False):
@@ -229,9 +260,9 @@ def save_calculation_results(calculation_idx, n, z, name, exp=False):
             shutil.copy(f"calculations/calculation{calculation_idx}/astrorate.g",
                    f"data/{z}-{n}/rate{name}-exp.g")
     except FileNotFoundError:
-        logging.error("Could not copy 'astrorate.g' from calculations/calculation%s/" +
+        logging.warning("Could not copy 'astrorate.g' from calculations/calculation%s/" +
                       "Does it exist? Terminating...", str(calculation_idx))
-        os.kill(os.getpid(), signal.SIGTERM)
+        #os.kill(os.getpid(), signal.SIGTERM)
     try:
         with open(f"calculations/calculation{calculation_idx}/talys.out") as f:
             while True:
@@ -248,9 +279,9 @@ def save_calculation_results(calculation_idx, n, z, name, exp=False):
             with open(f"data/{z}-{n}/rate{name}-exp.g", "a") as f:
                 f.write(QVal)
     except FileNotFoundError:
-        logging.error("Could not copy 'talys.out' from calculations/calculation%s/" +
+        logging.warning("Could not copy 'talys.out' from calculations/calculation%s/" +
                       "Does it exist? Terminating...", str(calculation_idx))
-        os.kill(os.getpid(), signal.SIGTERM)
+        #os.kill(os.getpid(), signal.SIGTERM)
     return
 
 def prepare_input(calculation_idx, n, z, mass_excesses, num_ldmodel, talys_path):
@@ -340,13 +371,19 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, num_qs_exp, q_step, mass_
     ns = []
     zs = []
 
+    print("test0")
+
     total_baseline_me_array = mass_function(data_path, params, nuclei_lst)
 
     for nuc in nuclei_lst:
         zs.append(nuc[1])
         ns.append(nuc[0])
-        
+
+    print("test1")
+
     baseline_me = baseline_mass_excess(total_baseline_me_array, ns, zs)
+
+    print("test2")
 
     # create full list of arguments
     arguments = []
@@ -358,21 +395,31 @@ def execute(nuclei_lst, talys_path, data_path, num_qs, num_qs_exp, q_step, mass_
         # checks if we have uncertainty from AME20. If so, run more refined calculations
         # within +- 2*uncertainty
         if me[-1] != 0:
-            print(n, z)
             for idx in range(num_qs_exp):
-                for ld_idx in range(1, 7): 
+                for ld_idx in range(1, 7):
                     # TODO: add flag for experimental values?
                     arguments.append((n, z, me, exp_uncertainty_multiple*2*me[-1]/(num_qs_exp-1), num_qs_exp, talys_path, idx, ld_idx, True))
+    
+    print("test3")
+
+    print(len(arguments))
+
+
+    for arg in arguments: # to be used to creating list of required nuclei
+        perform_calculation(arg)
 
     # parallel computation
-    num_cores = multiprocessing.cpu_count()
+    """num_cores = multiprocessing.cpu_count()
     print(f"Running with {num_cores} cores.")
     pool = multiprocessing.Pool(num_cores)
 
     pool.map_async(perform_calculation, arguments)
 
     pool.close()
-    pool.join()
+    pool.join()"""
 
 if __name__ == "__main__":
     print("File should be imported, then run 'execute()' with the proper arguments.")
+
+
+

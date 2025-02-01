@@ -2,7 +2,6 @@
 
 import numpy as np
 from math import sqrt
-import matplotlib.pyplot as plt
 import scipy.optimize as op
 from numba import jit
 import pymc3 as pm
@@ -10,8 +9,6 @@ import arviz as az
 import autograd.numpy as agnp
 from autograd import grad
 import pandas as pd
-import matplotlib
-import seaborn as sns
 import scipy.stats as stats
 
 from src.utilterms import *

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
+import logging
 
 """"""
 
@@ -151,9 +153,36 @@ keyword_dict = {"" : ""}
 def read_input(input_path):
     """Reads the input from input_path.
     input_path : path to input file"""
+
+    calculation_args = []
+
     with open(input_path, "utf8", encoding="utf8") as f:
         while True:
             line = f.readline()
             if not line:
                 break
             line = f.readline()
+
+
+    return calculation_args
+
+
+
+
+
+def main():
+    args = sys.argv[1:3]
+    try:
+        input_path = args[0]
+        output_path = args[1]
+    except IndexError:
+        logging.error("Insufficient arguments supplied. Have you given both input and output paths?")
+        return
+    calculation_args = read_input(input_path)
+    
+
+
+
+
+if __name__ == "__main__":
+    main()

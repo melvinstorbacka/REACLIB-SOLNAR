@@ -3,6 +3,8 @@ import os
 import matplotlib.pyplot as plt
 import scipy.optimize as op
 
+import logging
+
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
@@ -17,7 +19,7 @@ from data_read import read
 mae_loss = keras.losses.MeanAbsoluteError()
 
 
-def read_data(n, z):
+def read_data(n, z, experimental=False):
     """Reads the data from ./data/{n}-{z}/, and outputs a (Q, T)-array and Rate list, as fit dataset.
     n       : neutron number
     z       : proton number
@@ -33,15 +35,23 @@ def read_data(n, z):
     files = os.listdir(dir_path)
     files.sort()
 
-    non_exp_files = []
+    filtered_files = []
     
-    # TODO: add checking if central is double - remove one of them
-
     for file_path in files:
-        if "exp" not in file_path:
-            non_exp_files.append(file_path)
+        if not experimental:
+            if "exp" not in file_path:
+                filtered_files.append(file_path)
+        else:
+            if "exp" in file_path:
+                filtered_files.append(file_path)
 
-    files = non_exp_files
+    files = filtered_files
+
+    if not files: # no experimental files
+        raise FileNotFoundError("No experimental files for nucleus {z}-{n}.")
+    
+    if len(files) < 21*6:
+        raise IndexError("Too few calculations.")
 
     QT_points, rate_points, qlist, templist, errorlist = read(files, dir_path)
 
@@ -154,7 +164,7 @@ def mae_loss_no_zero_rates(y_true, y_pred):
 @keras.saving.register_keras_serializable()
 def test_loss(y_true, y_pred):
     """Custom mean absolute error loss function used for fitting the rates. Standard MAE except for
-    rates = 0, in which case we replace these with the log(minimal rate value for the nucleus) - 5, and 
+    rates = 0, in which case we replace these with the log(minimal rate value for test_lossthe nucleus) - 5, and 
     give them a much smaller weight in the loss calculations. This is done to focus on the behaviour at non-zero rates
     (since zero rates -> -infinity in log format), while still maintaining the negative trend of the rates."""
     
@@ -241,6 +251,7 @@ def mape_no_zero_rates_greaterpoint1GK(y_true, y_pred):
     return final_mape
 
 
+@keras.saving.register_keras_serializable()
 def mape_weighted_low_temps(y_true, y_pred):
     """Mean average percentage error metric for evualuating the fit, disregarding rates = 0."""
 
@@ -315,10 +326,10 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
         metrics=[rmse_no_zero_rates, mape_no_zero_rates, mape_no_zero_rates_greaterpoint1GK],
     )
 
-    print("Start training the model...")
+    #logging.info("Start training the model...")
     if ld_idxp1:
         if len(rate_array[ld_idx]) != 108*21:
-            print("Incorrect dimensions, returning.", flush=True)
+            print("Incorrect dimensions, returning. Dimensions: %s", str(np.array(rate_array[ld_idx]).shape), flush=True)
             return
         Z_train = rate_array[ld_idx, :]
         QT_train = QT_array[ld_idx, :, :]
@@ -328,9 +339,9 @@ def fit_data(model, loss, QT_array, rate_array, train_size, batch_size, ld_idxp1
 
 
     model_history = model.fit(QT_train, Z_train, epochs=epochs, batch_size=batch_size, verbose=0)
-    print("Model training finished.")
+    #logging.info("Model training finished.")
     _, rmse, mae, mae1GK = model.evaluate(QT_train, Z_train, verbose=0)
-    print(f"Train RMSE: {round(rmse, 3)}")
+    #logging.info(f"Train RMSE: {round(rmse, 3)}")
 
     return model_history, rmse, mae, mae1GK
 
@@ -486,13 +497,18 @@ def save_standard_nn(model, n, z, ld_idx, experimental=False):
 
     # TODO: add separate structure for experimental nuclei
 
+    if experimental:
+        exp_status = "-exp"
+    else:
+        exp_status = ""
+
     if not os.path.exists("NNParameters/"):
         os.mkdir("NNParameters/")
 
     if not os.path.exists(f"NNParameters/{z}-{n}"):
         os.mkdir(f"NNParameters/{z}-{n}")
 
-    model.save(f"NNParameters/{z}-{n}/{ld_idx}.keras")
+    model.save(f"NNParameters/{z}-{n}/{ld_idx}{exp_status}.keras")
 
     return None
 
@@ -509,17 +525,22 @@ def load_bnn(model):
     pass
 
 
-def load_standard_nn(n, z, ld_idx):
+def load_standard_nn(n, z, ld_idx, experimental=False):
     """Used to load parameters of standard NN fit. Loads the model in
     /NNParameters/{z}-{n}/ld_idx/{Q}.json. Returns the NN model loaded in Keras.
     n       :: neutron number
     z       :: proton number
     ld_idx  :: level density model number in TALYS
     Q       :: Q-value in MeV"""
-    
-    # add different treatment for experimental fit
+   
+    if experimental:
+        exp_status = "-exp"
+    else:
+        exp_status = ""
 
-    model = keras.models.load_model(f'NNParameters/{z}-{n}/{ld_idx}.keras', custom_objects={ 'loss': mae_loss_no_zero_rates, 'accuracy' : rmse_no_zero_rates})
+    model = keras.models.load_model(f'NNParameters/{z}-{n}/{ld_idx}{exp_status}.keras',
+                                    custom_objects={ 'loss': mae_loss_no_zero_rates,
+                                                    'accuracy' : rmse_no_zero_rates})
 
     return model
 
@@ -551,13 +572,23 @@ def reaclib_fit(model, Q):
     return res
 
 
-def reaclib_output_rate(model, file_path, Q):
-    """Append reaclib fit constants to file in file_path."""
+def reaclib_output_rate(model, file_path, N, Z, Q):
+    """Append reaclib fit constants to file in file_path.
+    model       : LD model to be used
+    file_path   : path of output REACLIB file
+    N           : neutron number of nucleus
+    Z           : proton number of nucleus
+    Q           : Q-value in MeV to be used"""
     pass
 
 
-def reaclib_total_output(model, file_path, list_of_nuclei, list_of_masses):
+def reaclib_total_output(model, file_path, XLM_file_path, list_of_nuclei=None):
     """Outputs the total reaclib fit file for all nuclei in the list
+    model           : LD model to be used
+    file_path       : path of output REACLIB file
+    XML_file_path   : path to XML file for mass reading
+    list_of_nuclei  : list of all nuclei of which we are interested, ignore if all
+
     TODO: warning if nuclei are missing"""
 
 def plot_loss(model_history):
@@ -571,27 +602,28 @@ def plot_loss(model_history):
     plt.clf()
 
 
-def main():
+def main_fitting(experimental=False):
     """Just have to figure out what to put here :P"""
 
     nz_list = []
 
     for dirname in os.listdir("data/"):
         temp = dirname.split("-")
-        nz_list.append([int(temp[1]), int(temp[0])])
+        nz_list.append([int(temp[1]), int(temp[0]), experimental])
 
     arguments = nz_list
             
-    # parallel computation
-    num_cores = multiprocessing.cpu_count()
-    print(f"Running with {num_cores} cores.")
-    pool = multiprocessing.Pool(num_cores)
+    # multicore computation
+    num_cores = multiprocessing.cpu_count() - 1 # otherwise the computer became very hard to use :)))
+    #logging.info(f"Running with {num_cores} cores.")
 
-    #for argument in arguments:
-     #   print(argument)
-      #  fit_and_save(argument)
 
-    pool.map_async(fit_and_save, arguments)
+    #for arg in arguments:
+    #    fit_and_save(arg)
+
+    pool = multiprocessing.Pool(num_cores, maxtasksperchild=1)
+
+    pool.map_async(fit_and_save, arguments,  chunksize=1)
 
     pool.close()
     pool.join()
@@ -599,45 +631,105 @@ def main():
 
 
 def fit_and_save(args):
-    nz = args
+    n, z, experimental = args
     train_size = 108*21*6
-    n, z = nz
-    data = read_data(n, z)
-    print(data[-1])
+    try:
+        data = read_data(n, z, experimental)
+    except FileNotFoundError:
+        #logging.warning("No experimental nuclei found for z = %s, n = %s!", str(z), str(n))
+        return
+    except IndexError:
+        print(f"Too few calculations., {n}-{z}", flush="True")
+        #logging.warning("Too few calculations.")
+        return
+        
+    if experimental:
+        exp_status = "-exp"
+    else:
+        exp_status = ""
     for ld_idx in range(6):
         ld_idxp1 = 1 + ld_idx
         if ld_idxp1 not in data[-1]:
-            print(ld_idxp1)
-            if os.path.exists(f"NNParameters/{z}-{n}/{ld_idx}.keras"):
-                print("Skipping, already exists.", flush=True)
+            if os.path.exists(f"NNParameters/{z}-{n}/{ld_idx}{exp_status}.keras"):
+                #logging.warning("Skipping, already exists.")
                 continue
             nn_model = create_standard_nn_model()
-            history, rmse, mae, mae1GK = fit_data(nn_model, test_loss, data[0], data[1], train_size, 2*108, ld_idxp1) # testing custom loss function
-            save_standard_nn(nn_model, n, z, ld_idx)
+            out = fit_data(nn_model, test_loss, data[0], data[1], train_size, 2*108, ld_idxp1)
+            if out:
+                history, rmse, mape, mape1GK = out
+            else:
+                continue # need to check that we do not re-run these cases
+            save_standard_nn(nn_model, n, z, ld_idx, experimental)
             with open("NNParameters/model_data.utf8", "a+") as f:
                 if not os.path.getsize("NNParameters/model_data.utf8"):
-                    f.write("ld, n   , z   , rmse    , mae     , mae>1GK \n")
-                f.write(f"{ld_idxp1:>2}, {n:<4}, {z:<4}, {rmse:8.5f}, {mae:8.5f}%, {mae1GK:8.5f}%  \n")
+                    f.write("ld, n   , z   , rmse    , mape     , mape>1GK \n")
+                f.write(f"{ld_idxp1:>2}, {n:<4}, {z:<4}, {rmse:8.5f}, {mape:8.5f}%, {mape1GK:8.5f}%  \n")
     return
 
 
-main()
+
+def test(n, z, ld_idx, experimental=False):
+    """Evaluates and prints the accuracy of the fitted models."""
+    
+
+    model = load_standard_nn(n, z, ld_idx, experimental)
+    QT_array, rate_array = read_data(n, z, experimental)[0:2]
+
+    if (ld_idx+1):
+        if len(rate_array[ld_idx]) != 108*21:
+            print("Incorrect dimensions, returning. Dimensions: %s", str(np.array(rate_array[ld_idx]).shape), flush=True)
+            return
+        Z_train = rate_array[ld_idx, :]
+        QT_train = QT_array[ld_idx, :, :]
+    else:
+        Z_train = rate_array.flatten()
+        QT_train = QT_array.reshape(-1, QT_array.shape[-1])
+
+    return model.evaluate(QT_train, Z_train, verbose=0)
+    
+
+def global_test(dir):
+    """Runs a global evaluation of fitting performance for all nuclei in directory."""
+
+    max = 41710
+    i = 0
+
+    with open("model_data.utf8", "w") as f:
+        f.write("ld, n   , z   , rmse    , mape     , mape>1GK \n")
+        for nuc in os.listdir(dir):
+            if "model_data" in nuc:
+                continue
+            z, n = nuc.split("-")
+            for model in os.listdir(f"{dir}{nuc}"):
+                i += 1
+                ld_idx = model[0]
+                loss, rmse, mape, mape1GK = test(int(n), int(z), int(ld_idx))
+                print(i/max, flush=True)
+                f.write(f"{int(ld_idx)+1:>2},{n:>3}, {z:>3}, {loss:8.5f}, {rmse:8.5f}, {mape:8.5f}%, {mape1GK:8.5f}%  \n")
+
+
+global_test("NNParameters/")
+#test(121, 50, 0)
+
 
 #main()
 
+#main_fitting()
 
+#model = create_standard_nn_model()
+#print(model.summary())
 
 
     #plot_loss(history)
 
 
-
-#fit_and_save([214 , 96])
-#fit_and_save([217, 117])
-#fit_and_save([213, 119])
-
 """
-n, z = 214 , 96 #214 , 96
+fit_and_save([114 , 53, False])
+#fit_and_save([217, 117])
+#fit_and_save([197 , 83])
+
+
+n, z = 114 , 53 #214 , 96
 data = read_data(n, z)
 
 ld_idx = 1 # check indices...
@@ -683,6 +775,6 @@ plt.savefig("test.png")
 
     #plot3d_standard_nn(bnn_model, 79, 56, 1, data[2][10], 10, 0.5, data[2], data[1], data[3])
 
-
 """
+
 
